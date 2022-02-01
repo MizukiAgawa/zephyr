@@ -1,0 +1,8 @@
+# Copyright (c) 2019, Linaro Limited
+# SPDX-License-Identifier: Apache-2.0
+
+description: SI1145 proximity/UV/ambient light sensor
+
+compatible: "silabs,si1145"
+
+include: i2c-device.yaml

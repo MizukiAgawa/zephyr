@@ -6,9 +6,9 @@
 
 /* Example configuration of a BME280 device on an Arduino SPI bus. */
 
-&arduino_spi {
+&spi1 {
 	status = "okay";
-	cs-gpios = <&arduino_header 16 GPIO_ACTIVE_LOW>;
+	cs-gpios = <&gpio0 3 GPIO_ACTIVE_LOW>;
 	bme280@0 {
 		compatible = "bosch,bme280";
 		reg = <0>;

@@ -12,11 +12,11 @@
 
 /*
  * Get a device structure from a devicetree node with compatible
- * "bosch,bme280". (If there are multiple, just pick one.)
+ * "silabs,si1145". (If there are multiple, just pick one.)
  */
-static const struct device *get_bme280_device(void)
+static const struct device *get_si1145_device(void)
 {
-	const struct device *dev = DEVICE_DT_GET_ANY(bosch_bme280);
+	const struct device *dev = DEVICE_DT_GET_ANY(silabs_si1145);
 
 	if (dev == NULL) {
 		/* No such node, or the node does not have status "okay". */
@@ -37,11 +37,10 @@ static const struct device *get_bme280_device(void)
 
 void main(void)
 {
-	const struct device *dev = get_bme280_device();
+	const struct device *dev = get_si1145_device();
 	//const struct device *dev = DEVICE_DT_GET(DT_ALIAS(i2c0));
 
 	if (dev == NULL) {
-		printk("\nreturn null\n");
 		return;
 	}
 
@@ -53,6 +52,7 @@ void main(void)
 		sensor_channel_get(dev, SENSOR_CHAN_PRESS, &press);
 		sensor_channel_get(dev, SENSOR_CHAN_HUMIDITY, &humidity);
 
+		printk("restart\n");
 		printk("temp: %d.%06d; press: %d.%06d; humidity: %d.%06d\n",
 		      temp.val1, temp.val2, press.val1, press.val2,
 		      humidity.val1, humidity.val2);

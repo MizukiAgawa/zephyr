@@ -1,0 +1,122 @@
+# BMP280 temperature and pressure sensor configuration options
+
+# Copyright (c) 2016 Intel Corporation
+# Copyright (c) 2017 IpTronix S.r.l.
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig SI1145
+	bool "SI1145/BMP280 sensor"
+	depends on I2C || SPI
+	help
+	  Enable driver for SI1145 I2C-based or SPI-based temperature and pressure sensor.
+
+if SI1145
+
+choice
+	prompt "SI1145 sampling mode"
+	default SI1145_MODE_NORMAL
+	help
+	  Select sampling mode. In normal mode continuous measurements are
+	  performed, whereas in forced mode only single measurement is performed.
+config SI1145_MODE_NORMAL
+	bool "normal"
+config SI1145_MODE_FORCED
+	bool "forced"
+endchoice
+
+choice
+	prompt "SI1145 temperature oversampling"
+	default SI1145_TEMP_OVER_2X
+	help
+	  Select temperature oversampling for the SI1145 sensor.  Higher values
+	  lead to more accurate readings, but higher power consumption.
+config SI1145_TEMP_OVER_1X
+	bool "x1"
+config SI1145_TEMP_OVER_2X
+	bool "x2"
+config SI1145_TEMP_OVER_4X
+	bool "x4"
+config SI1145_TEMP_OVER_8X
+	bool "x8"
+config SI1145_TEMP_OVER_16X
+	bool "x16"
+endchoice
+
+choice
+	prompt "SI1145 pressure oversampling"
+	default SI1145_PRESS_OVER_16X
+	help
+	  Select pressure oversampling for the SI1145 sensor.  Higher values
+	  lead to more accurate readings, but higher power consumption.
+config SI1145_PRESS_OVER_1X
+	bool "x1"
+config SI1145_PRESS_OVER_2X
+	bool "x2"
+config SI1145_PRESS_OVER_4X
+	bool "x4"
+config SI1145_PRESS_OVER_8X
+	bool "x8"
+config SI1145_PRESS_OVER_16X
+	bool "x16"
+endchoice
+
+choice
+	prompt "SI1145 humidity oversampling"
+	default SI1145_HUMIDITY_OVER_16X
+	help
+	  Select humidity oversampling for the SI1145 sensor.  Higher values
+	  lead to more accurate readings, but higher power consumption.
+config SI1145_HUMIDITY_OVER_1X
+	bool "x1"
+config SI1145_HUMIDITY_OVER_2X
+	bool "x2"
+config SI1145_HUMIDITY_OVER_4X
+	bool "x4"
+config SI1145_HUMIDITY_OVER_8X
+	bool "x8"
+config SI1145_HUMIDITY_OVER_16X
+	bool "x16"
+endchoice
+
+choice
+	prompt "SI1145 standby time"
+	default SI1145_STANDBY_1000MS
+	help
+	  Select standby time between measurements for the SI1145 sensor.
+	  Higher values lead to lower power consumption.
+config SI1145_STANDBY_05MS
+	bool "0.5ms"
+config SI1145_STANDBY_62MS
+	bool "62.5ms"
+config SI1145_STANDBY_125MS
+	bool "125ms"
+config SI1145_STANDBY_250MS
+	bool "250ms"
+config SI1145_STANDBY_500MS
+	bool "500ms"
+config SI1145_STANDBY_1000MS
+	bool "1000ms"
+config SI1145_STANDBY_2000MS
+	bool "2000ms BMP280 / 10ms SI1145"
+config SI1145_STANDBY_4000MS
+	bool "4000ms BMP280 / 20ms SI1145"
+endchoice
+
+choice
+	prompt "SI1145 filter coefficient"
+	default SI1145_FILTER_4
+	help
+	  Select the filter coefficient for the SI1145 sensor.
+config SI1145_FILTER_OFF
+	bool "filter off"
+config SI1145_FILTER_2
+	bool "2"
+config SI1145_FILTER_4
+	bool "4"
+config SI1145_FILTER_8
+	bool "8"
+config SI1145_FILTER_16
+	bool "16"
+endchoice
+
+endif # SI1145
