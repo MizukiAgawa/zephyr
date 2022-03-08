@@ -334,6 +334,10 @@ static int si1145_chip_init(const struct device *dev)
 		return err;
 	}
 
+	err = si1145_reg_read(dev, 0, &data->chip_id, 1);
+	printk("err:%d data->chip_id:%x",err,data->chip_id);
+	while(1){};
+
 	err = si1145_reg_read(dev, SI1145_REG_ID, &data->chip_id, 1);
 	if (err < 0) {
 		LOG_DBG("ID read failed: %d", err);

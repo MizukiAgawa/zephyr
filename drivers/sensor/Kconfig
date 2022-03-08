@@ -234,4 +234,6 @@ source "drivers/sensor/nuvoton_tach_npcx/Kconfig"
 
 source "drivers/sensor/si1145/Kconfig"
 
+source "drivers/sensor/pim586/Kconfig"
+
 endif # SENSOR

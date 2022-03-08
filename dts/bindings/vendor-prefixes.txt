@@ -451,6 +451,7 @@ pervasive	Pervasive Displays, Inc.
 phicomm	PHICOMM Co., Ltd.
 phytec	PHYTEC Messtechnik GmbH
 picochip	Picochip Ltd
+pimoroni	Pimoroni Ltd
 pine64	Pine64
 pineriver	Shenzhen PineRiver Designs Co., Ltd.
 pixcir	PIXCIR MICROELECTRONICS Co., Ltd
