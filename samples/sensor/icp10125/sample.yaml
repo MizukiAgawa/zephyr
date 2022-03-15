@@ -1,7 +1,7 @@
 sample:
-  name: PIM586 Sensor sample
+  name: ICP10125 Sensor sample
 tests:
-  sample.sensor.pim586:
+  sample.sensor.icp10125:
     harness: console
     tags: sensors
     platform_allow: adafruit_feather_m0_basic_proto
@@ -11,14 +11,14 @@ tests:
         type: one_line
         regex:
             - "temp: (.*); press: (.*); humidity: (.*)"
-        fixture: fixture_i2c_pim586
-  sample.sensor.pim586.spi:
+        fixture: fixture_i2c_icp10125
+  sample.sensor.icp10125.spi:
     harness: console
     tags: sensors
-    depends_on: spi pim586
+    depends_on: spi icp10125
     extra_args: "DTC_OVERLAY_FILE=arduino_spi.overlay"
     harness_config:
         type: one_line
         regex:
             - "temp: (.*); press: (.*); humidity: (.*)"
-        fixture: fixture_spi_pim586
+        fixture: fixture_spi_icp10125

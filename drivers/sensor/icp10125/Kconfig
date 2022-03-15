@@ -4,119 +4,119 @@
 # Copyright (c) 2017 IpTronix S.r.l.
 # SPDX-License-Identifier: Apache-2.0
 
-menuconfig PIM586
-	bool "PIM586/BMP280 sensor"
+menuconfig ICP10125
+	bool "ICP10125/BMP280 sensor"
 	depends on I2C || SPI
 	help
-	  Enable driver for PIM586 I2C-based or SPI-based temperature and pressure sensor.
+	  Enable driver for ICP10125 I2C-based or SPI-based temperature and pressure sensor.
 
-if PIM586
+if ICP10125
 
 choice
-	prompt "PIM586 sampling mode"
-	default PIM586_MODE_NORMAL
+	prompt "ICP10125 sampling mode"
+	default ICP10125_MODE_NORMAL
 	help
 	  Select sampling mode. In normal mode continuous measurements are
 	  performed, whereas in forced mode only single measurement is performed.
-config PIM586_MODE_NORMAL
+config ICP10125_MODE_NORMAL
 	bool "normal"
-config PIM586_MODE_FORCED
+config ICP10125_MODE_FORCED
 	bool "forced"
 endchoice
 
 choice
-	prompt "PIM586 temperature oversampling"
-	default PIM586_TEMP_OVER_2X
+	prompt "ICP10125 temperature oversampling"
+	default ICP10125_TEMP_OVER_2X
 	help
-	  Select temperature oversampling for the PIM586 sensor.  Higher values
+	  Select temperature oversampling for the ICP10125 sensor.  Higher values
 	  lead to more accurate readings, but higher power consumption.
-config PIM586_TEMP_OVER_1X
+config ICP10125_TEMP_OVER_1X
 	bool "x1"
-config PIM586_TEMP_OVER_2X
+config ICP10125_TEMP_OVER_2X
 	bool "x2"
-config PIM586_TEMP_OVER_4X
+config ICP10125_TEMP_OVER_4X
 	bool "x4"
-config PIM586_TEMP_OVER_8X
+config ICP10125_TEMP_OVER_8X
 	bool "x8"
-config PIM586_TEMP_OVER_16X
+config ICP10125_TEMP_OVER_16X
 	bool "x16"
 endchoice
 
 choice
-	prompt "PIM586 pressure oversampling"
-	default PIM586_PRESS_OVER_16X
+	prompt "ICP10125 pressure oversampling"
+	default ICP10125_PRESS_OVER_16X
 	help
-	  Select pressure oversampling for the PIM586 sensor.  Higher values
+	  Select pressure oversampling for the ICP10125 sensor.  Higher values
 	  lead to more accurate readings, but higher power consumption.
-config PIM586_PRESS_OVER_1X
+config ICP10125_PRESS_OVER_1X
 	bool "x1"
-config PIM586_PRESS_OVER_2X
+config ICP10125_PRESS_OVER_2X
 	bool "x2"
-config PIM586_PRESS_OVER_4X
+config ICP10125_PRESS_OVER_4X
 	bool "x4"
-config PIM586_PRESS_OVER_8X
+config ICP10125_PRESS_OVER_8X
 	bool "x8"
-config PIM586_PRESS_OVER_16X
+config ICP10125_PRESS_OVER_16X
 	bool "x16"
 endchoice
 
 choice
-	prompt "PIM586 humidity oversampling"
-	default PIM586_HUMIDITY_OVER_16X
+	prompt "ICP10125 humidity oversampling"
+	default ICP10125_HUMIDITY_OVER_16X
 	help
-	  Select humidity oversampling for the PIM586 sensor.  Higher values
+	  Select humidity oversampling for the ICP10125 sensor.  Higher values
 	  lead to more accurate readings, but higher power consumption.
-config PIM586_HUMIDITY_OVER_1X
+config ICP10125_HUMIDITY_OVER_1X
 	bool "x1"
-config PIM586_HUMIDITY_OVER_2X
+config ICP10125_HUMIDITY_OVER_2X
 	bool "x2"
-config PIM586_HUMIDITY_OVER_4X
+config ICP10125_HUMIDITY_OVER_4X
 	bool "x4"
-config PIM586_HUMIDITY_OVER_8X
+config ICP10125_HUMIDITY_OVER_8X
 	bool "x8"
-config PIM586_HUMIDITY_OVER_16X
+config ICP10125_HUMIDITY_OVER_16X
 	bool "x16"
 endchoice
 
 choice
-	prompt "PIM586 standby time"
-	default PIM586_STANDBY_1000MS
+	prompt "ICP10125 standby time"
+	default ICP10125_STANDBY_1000MS
 	help
-	  Select standby time between measurements for the PIM586 sensor.
+	  Select standby time between measurements for the ICP10125 sensor.
 	  Higher values lead to lower power consumption.
-config PIM586_STANDBY_05MS
+config ICP10125_STANDBY_05MS
 	bool "0.5ms"
-config PIM586_STANDBY_62MS
+config ICP10125_STANDBY_62MS
 	bool "62.5ms"
-config PIM586_STANDBY_125MS
+config ICP10125_STANDBY_125MS
 	bool "125ms"
-config PIM586_STANDBY_250MS
+config ICP10125_STANDBY_250MS
 	bool "250ms"
-config PIM586_STANDBY_500MS
+config ICP10125_STANDBY_500MS
 	bool "500ms"
-config PIM586_STANDBY_1000MS
+config ICP10125_STANDBY_1000MS
 	bool "1000ms"
-config PIM586_STANDBY_2000MS
-	bool "2000ms BMP280 / 10ms PIM586"
-config PIM586_STANDBY_4000MS
-	bool "4000ms BMP280 / 20ms PIM586"
+config ICP10125_STANDBY_2000MS
+	bool "2000ms BMP280 / 10ms ICP10125"
+config ICP10125_STANDBY_4000MS
+	bool "4000ms BMP280 / 20ms ICP10125"
 endchoice
 
 choice
-	prompt "PIM586 filter coefficient"
-	default PIM586_FILTER_4
+	prompt "ICP10125 filter coefficient"
+	default ICP10125_FILTER_4
 	help
-	  Select the filter coefficient for the PIM586 sensor.
-config PIM586_FILTER_OFF
+	  Select the filter coefficient for the ICP10125 sensor.
+config ICP10125_FILTER_OFF
 	bool "filter off"
-config PIM586_FILTER_2
+config ICP10125_FILTER_2
 	bool "2"
-config PIM586_FILTER_4
+config ICP10125_FILTER_4
 	bool "4"
-config PIM586_FILTER_8
+config ICP10125_FILTER_8
 	bool "8"
-config PIM586_FILTER_16
+config ICP10125_FILTER_16
 	bool "16"
 endchoice
 
-endif # PIM586
+endif # ICP10125

@@ -5,16 +5,16 @@
  */
 
 /*
- * Example configuration of a PIM586 device on an Arduino I2C bus.
+ * Example configuration of a ICP10125 device on an Arduino I2C bus.
  *
  * Device address 0x77 is assumed. Your device may have a different
  * address; check your device documentation if unsure.
  */
 &i2c0 {
 	status = "okay";
-	pim586@63 {
-		compatible = "pimoroni,pim586";
+	icp10125@63 {
+		compatible = "tdk,icp10125";
 		reg = <0x63>;
-		label = "PIM586_I2C";
+		label = "ICP10125_I2C";
 	};
 };

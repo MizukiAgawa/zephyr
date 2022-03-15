@@ -12,13 +12,12 @@
 
 /*
  * Get a device structure from a devicetree node with compatible
- * "silabs,pim586". (If there are multiple, just pick one.)
+ * "silabs,icp10125". (If there are multiple, just pick one.)
  */
-static const struct device *get_pim586_device(void)
+static const struct device *get_icp10125_device(void)
 {
 	printk("get-device-1\n ");
-	const struct device *dev = DEVICE_DT_GET_ANY(pimoroni_icp10125);
-//	const struct device *dev = NULL;
+	const struct device *dev = DEVICE_DT_GET_ANY(tdk_icp10125);
 
 	if (dev == NULL) {
 		/* No such node, or the node does not have status "okay". */
@@ -42,7 +41,7 @@ void main(void)
 {
 	k_sleep(K_MSEC(2000));
 	printk(" main-1\n ");
-	const struct device *dev = get_pim586_device();
+	const struct device *dev = get_icp10125_device();
 	//const struct device *dev = DEVICE_DT_GET(DT_ALIAS(i2c0));
 	printk(" main-2 \n ");
 	k_sleep(K_MSEC(2000));
