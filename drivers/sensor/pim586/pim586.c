@@ -101,44 +101,54 @@ static int pim586_sample_fetch(const struct device *dev,
 	
 	__ASSERT_NO_MSG(chan == SENSOR_CHAN_ALL);
 
-	data_write[0] = PIM586_REG_SEND;
-	data_write[1] = 0x95;
-	data_write[2] = 0x00;
-	data_write[3] = 0x66;
-	data_write[4] = 0x9C;
+	// data_write[0] = PIM586_REG_SEND;
+	// data_write[1] = 0x95;
+	// data_write[2] = 0x00;
+	// data_write[3] = 0x66;
+	// data_write[4] = 0x9C;
 
-	printk("fetch data_write 1\n");
-	if (i2c_write(data->i2c, data_write, 5, PIM586_I2C_ADDRESS)){
-		LOG_DBG("Failed to write address pointer");
-		return -EIO;
-	}
+	// printk("fetch data_write 1\n");
+	// if (i2c_write(data->i2c, data_write, 5, PIM586_I2C_ADDRESS)){
+	// 	LOG_DBG("Failed to write address pointer");
+	// 	return -EIO;
+	// }
 
-	for (int i = 0; i < 4; i++) {
-		data_write[0] = 0xC7;
-		data_write[1] = 0xF7;
-		if (i2c_write(data->i2c, data_write, 2, PIM586_I2C_ADDRESS)){
-			LOG_DBG("Failed to write address pointer");
-			return -EIO;
-		}
+	// for (int i = 0; i < 4; i++) {
+	// 	data_write[0] = 0xC7;
+	// 	data_write[1] = 0xF7;
+	// 	if (i2c_write(data->i2c, data_write, 2, PIM586_I2C_ADDRESS)){
+	// 		LOG_DBG("Failed to write address pointer");
+	// 		return -EIO;
+	// 	}
 
-		if (i2c_read(data->i2c, data_read, 3, PIM586_I2C_ADDRESS)){
-			LOG_DBG("Failed to write address pointer");
-			return -EIO;
-		}
-	    data->otp[i] = data_read[0]<<8 | data_read[1]; 
-	}
+	// 	if (i2c_read(data->i2c, data_read, 3, PIM586_I2C_ADDRESS)){
+	// 		LOG_DBG("Failed to write address pointer");
+	// 		return -EIO;
+	// 	}
+	//     data->otp[i] = data_read[0]<<8 | data_read[1]; 
+	// }
 
 	printk("fetch read temp\n");
 	data_write[0] = 0x68;
-	data_write[0] = 0x25;
+	data_write[1] = 0x25;
 	if (i2c_write(data->i2c, data_write, 2, PIM586_I2C_ADDRESS)){
 		LOG_DBG("Failed to write address pointer");
 		return -EIO;
 	}
-	if (i2c_read(data->i2c, data_read, 4, PIM586_I2C_ADDRESS)){
-		LOG_DBG("Failed to write address pointer");
-		return -EIO;
+	while(1){
+		if (i2c_read(data->i2c, data_read, 3, PIM586_I2C_ADDRESS)){
+			continue;
+		}
+		break;
 	}
+	data->T_LSB = data_read[0]<<8 | data_read[1];
+	printk("data[0]:%x\n,",data_read[0]);
+	printk("data[1]:%x\n,",data_read[1]);
+	printk("data[2]:%x\n,",data_read[2]);
+	printk("data->T_LSB:%x\n,",data->T_LSB);
+	// for (int i = 0; i < 4; i++){
+	// 	data->T_LSB = data[i]
+	// }
 
 	printk("fetch end\n");
 
@@ -159,40 +169,62 @@ void init_base(struct pim586_data * s, short *otp)
 	s->offst_factor = 2048.0;
 }
 
-static int pim586_channel_get(const struct device *dev,
-                  enum sensor_channel chan,
-			      struct sensor_value *val)
-{
-	struct pim586_data *data = to_data(dev);
+static void pim586_cal_temp(uint16_t T_LSB, struct sensor_value *val){
+	val->val1 = -45.f + 175.f/65536.f * T_LSB;
+	val->val2 = ((-45.f + 175.f/65536.f * T_LSB) - val->val1) * 1000000;
+}
 
-	int T_LSB =0;
-	int p_LSB =0;
-
-	init_base(data, data->otp);
-
+static void pim586_cal_press(uint16_t T_LSB, uint16_t p_LSB, struct sensor_value *val){
 	float t;
 	float s1,s2,s3;
 	float in[3];
 	float out[3];
 	float A,B,C;
-
-	t = (float)(T_LSB - 32768);
-	s1 = data->LUT_lower + (float)(data->sensor_constants[0] * t * t) * data->quadr_factor;
-	s2 = data->offst_factor * data->sensor_constants[3] + (float)(data->sensor_constants[1] * t * t) * data->quadr_factor;
-	s3= data->LUT_upper + (float)(data->sensor_constants[2] * t * t) * data->quadr_factor;
-
+	// t = (float)(T_LSB - 32768);
+	// s1 = data->LUT_lower + (float)(data->sensor_constants[0] * t * t) * data->quadr_factor;
+	// s2 = data->offst_factor * data->sensor_constants[3] + (float)(data->sensor_constants[1] * t * t) * data->quadr_factor;
+	// s3 = data->LUT_upper + (float)(data->sensor_constants[2] * t * t) * data->quadr_factor;
 	in[0] = s1;
 	in[1] = s2;
 	in[2] = s3;
-
 	//calculate_conversion_constants(s, s->p_Pa_calib, in, out);
 	A = out[0];
 	B = out[1];
 	C = out[2];
-
 	//*pressure = A + B / (C + p_LSB);
-	val->val1 = -45.f + 175.f/65536.f * T_LSB;
+}
 
+static int pim586_channel_get(const struct device *dev,
+                  enum sensor_channel chan,
+			      struct sensor_value *val)
+{
+	struct pim586_data *data = dev->data;
+
+	uint16_t p_LSB = 0;
+
+	init_base(data, data->otp);
+
+	if(chan == SENSOR_CHAN_AMBIENT_TEMP){
+		pim586_cal_temp(data->T_LSB, val);
+	} else if(chan == SENSOR_CHAN_PRESS){
+		//pim586_cal_press();
+
+		// t = (float)(T_LSB - 32768);
+		// s1 = data->LUT_lower + (float)(data->sensor_constants[0] * t * t) * data->quadr_factor;
+		// s2 = data->offst_factor * data->sensor_constants[3] + (float)(data->sensor_constants[1] * t * t) * data->quadr_factor;
+		// s3 = data->LUT_upper + (float)(data->sensor_constants[2] * t * t) * data->quadr_factor;
+
+		// in[0] = s1;
+		// in[1] = s2;
+		// in[2] = s3;
+		// //calculate_conversion_constants(s, s->p_Pa_calib, in, out);
+		// A = out[0];
+		// B = out[1];
+		// C = out[2];
+		// //*pressure = A + B / (C + p_LSB);
+	} else {
+		return -ENOTSUP;
+	}
 	return 0;
 }
 
@@ -215,20 +247,6 @@ static int pim586_init(const struct device *dev)
 	}
 
 	drv_dev->i2c_addr = cfg->i2c_addr;
-//	drv_dev->acc_odr = PIM586_ACC_ODR_100_HZ;
-//	drv_dev->acc_range = 8;
-//	drv_dev->gyr_odr = PIM586_GYR_ODR_200_HZ;
-//	drv_dev->gyr_range = 2000;
-
-	// k_usleep(BMI270_POWER_ON_TIME);
-
-	// printk("pim586_init start\n");
-	// err = pim586_bus_check(dev);
-	// if (err < 0) {
-	// 	LOG_DBG("bus check failed: %d", err);
-	// 	return err;
-	// }
-	// printk("pim586_init 2\n");
 
 	/* Wait for the sensor to be ready */
 	k_sleep(K_MSEC(1));

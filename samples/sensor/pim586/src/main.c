@@ -58,14 +58,14 @@ void main(void)
 
 		sensor_sample_fetch(dev);
 		sensor_channel_get(dev, SENSOR_CHAN_AMBIENT_TEMP, &temp);
-		sensor_channel_get(dev, SENSOR_CHAN_PRESS, &press);
+//		sensor_channel_get(dev, SENSOR_CHAN_PRESS, &press);
 /*
 		sensor_channel_get(dev, SENSOR_CHAN_AMBIENT_TEMP, &temp);
 		sensor_channel_get(dev, SENSOR_CHAN_PRESS, &press);
 		sensor_channel_get(dev, SENSOR_CHAN_HUMIDITY, &humidity);
 */
 		printk("restart\n");
-		printk("temp: %06d; press: %06d;\n", temp.val1, press.val1);
+		printk("temp.val1:%d temp.val2:%06d; press: %d;\n", temp.val1,temp.val2, press.val1);
 
 		k_sleep(K_MSEC(3000));
 	}

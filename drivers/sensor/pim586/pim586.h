@@ -32,7 +32,8 @@ struct pim586_data {
 	float LUT_upper;
 	float quadr_factor;
 	float offst_factor;
-	int 
+	int T_LSB;
+	int p_LSB;
 };
 
 struct pim586_dev_config {
