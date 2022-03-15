@@ -1,0 +1,24 @@
+sample:
+  name: SI1145 Sensor sample
+tests:
+  sample.sensor.si1145:
+    harness: console
+    tags: sensors
+    platform_allow: adafruit_feather_m0_basic_proto
+    integration_platforms:
+      - adafruit_feather_m0_basic_proto
+    harness_config:
+        type: one_line
+        regex:
+            - "temp: (.*); press: (.*); humidity: (.*)"
+        fixture: fixture_i2c_si1145
+  sample.sensor.si1145.spi:
+    harness: console
+    tags: sensors
+    depends_on: spi si1145
+    extra_args: "DTC_OVERLAY_FILE=arduino_spi.overlay"
+    harness_config:
+        type: one_line
+        regex:
+            - "temp: (.*); press: (.*); humidity: (.*)"
+        fixture: fixture_spi_si1145

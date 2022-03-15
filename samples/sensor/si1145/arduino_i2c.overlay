@@ -1,0 +1,20 @@
+/*
+ * Copyright (c) 2020, Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * Example configuration of a SI1145 device on an Arduino I2C bus.
+ *
+ * Device address 0x77 is assumed. Your device may have a different
+ * address; check your device documentation if unsure.
+ */
+&i2c0 {
+	status = "okay";
+	si1145@60 {
+		compatible = "silabs,si1145";
+		reg = <0x60>;
+		label = "SI1145_I2C";
+	};
+};
