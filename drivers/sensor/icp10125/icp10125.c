@@ -18,7 +18,7 @@
 
 #include <drivers/gpio.h>
 #include <drivers/i2c.h>
-#include "pim586.h"
+#include "icp10125.h"
 
 LOG_MODULE_REGISTER(PIM586, CONFIG_SENSOR_LOG_LEVEL);
 

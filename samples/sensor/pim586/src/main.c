@@ -17,7 +17,8 @@
 static const struct device *get_pim586_device(void)
 {
 	printk("get-device-1\n ");
-	const struct device *dev = DEVICE_DT_GET_ANY(pimoroni_pim586);
+	const struct device *dev = DEVICE_DT_GET_ANY(pimoroni_icp10125);
+//	const struct device *dev = NULL;
 
 	if (dev == NULL) {
 		/* No such node, or the node does not have status "okay". */

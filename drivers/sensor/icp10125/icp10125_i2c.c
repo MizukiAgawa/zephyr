@@ -10,7 +10,7 @@
  * Bus-specific functionality for PIM586s accessed via I2C.
  */
 
-#include "pim586.h"
+#include "icp10125.h"
 
 #if PIM586_BUS_I2C
 static int pim586_bus_check_i2c(const union pim586_bus *bus)
