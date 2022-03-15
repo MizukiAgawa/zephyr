@@ -101,32 +101,32 @@ static int icp10125_sample_fetch(const struct device *dev,
 	
 	__ASSERT_NO_MSG(chan == SENSOR_CHAN_ALL);
 
-	// data_write[0] = ICP10125_REG_SEND;
-	// data_write[1] = 0x95;
-	// data_write[2] = 0x00;
-	// data_write[3] = 0x66;
-	// data_write[4] = 0x9C;
+	data_write[0] = ICP10125_REG_SEND;
+	data_write[1] = 0x95;
+	data_write[2] = 0x00;
+	data_write[3] = 0x66;
+	data_write[4] = 0x9C;
 
-	// printk("fetch data_write 1\n");
-	// if (i2c_write(data->i2c, data_write, 5, ICP10125_I2C_ADDRESS)){
-	// 	LOG_DBG("Failed to write address pointer");
-	// 	return -EIO;
-	// }
+	printk("fetch data_write 1\n");
+	if (i2c_write(data->i2c, data_write, 5, ICP10125_I2C_ADDRESS)){
+		LOG_DBG("Failed to write address pointer");
+		return -EIO;
+	}
 
-	// for (int i = 0; i < 4; i++) {
-	// 	data_write[0] = 0xC7;
-	// 	data_write[1] = 0xF7;
-	// 	if (i2c_write(data->i2c, data_write, 2, ICP10125_I2C_ADDRESS)){
-	// 		LOG_DBG("Failed to write address pointer");
-	// 		return -EIO;
-	// 	}
+	for (int i = 0; i < 4; i++) {
+		data_write[0] = 0xC7;
+		data_write[1] = 0xF7;
+		if (i2c_write(data->i2c, data_write, 2, ICP10125_I2C_ADDRESS)){
+			LOG_DBG("Failed to write address pointer");
+			return -EIO;
+		}
 
-	// 	if (i2c_read(data->i2c, data_read, 3, ICP10125_I2C_ADDRESS)){
-	// 		LOG_DBG("Failed to write address pointer");
-	// 		return -EIO;
-	// 	}
-	//     data->otp[i] = data_read[0]<<8 | data_read[1]; 
-	// }
+		if (i2c_read(data->i2c, data_read, 3, ICP10125_I2C_ADDRESS)){
+			LOG_DBG("Failed to write address pointer");
+			return -EIO;
+		}
+	    data->otp[i] = data_read[0]<<8 | data_read[1]; 
+	}
 
 	printk("fetch read temp\n");
 	data_write[0] = 0x68;
@@ -146,6 +146,21 @@ static int icp10125_sample_fetch(const struct device *dev,
 	printk("data[1]:%x\n,",data_read[1]);
 	printk("data[2]:%x\n,",data_read[2]);
 	printk("data->T_LSB:%x\n,",data->T_LSB);
+
+	printk("fetch read press\n");
+	data_write[0] = 0x48;
+	data_write[1] = 0xA3;
+	if (i2c_write(data->i2c, data_write, 2, ICP10125_I2C_ADDRESS)){
+		LOG_DBG("Failed to write address pointer");
+		return -EIO;
+	}
+	while(1){
+		if (i2c_read(data->i2c, data_read, 3, ICP10125_I2C_ADDRESS)){
+			continue;
+		}
+		break;
+	}
+	data->p_LSB = data_read[0]<<8 | data_read[1];
 
 	printk("fetch end\n");
 
@@ -171,24 +186,33 @@ static void icp10125_cal_temp(uint16_t T_LSB, struct sensor_value *val){
 	val->val2 = ((-45.f + 175.f/65536.f * T_LSB) - val->val1) * 1000000;
 }
 
-static void icp10125_cal_press(uint16_t T_LSB, uint16_t p_LSB, struct sensor_value *val){
+void calculate_conversion_constants(float *p_Pa, float *p_LUT, float *out)
+{
+	float A,B,C;
+	C = (p_LUT[0] * p_LUT[1] * (p_Pa[0] - p_Pa[1]) + p_LUT[1] * p_LUT[2] * (p_Pa[1] - p_Pa[2]) + p_LUT[2] * p_LUT[0] * (p_Pa[2] - p_Pa[0])) / (p_LUT[2] * (p_Pa[0] - p_Pa[1]) + p_LUT[0] * (p_Pa[1] - p_Pa[2]) + p_LUT[1] * (p_Pa[2] - p_Pa[0])); A = (p_Pa[0] * p_LUT[0] - p_Pa[1] * p_LUT[1] - (p_Pa[1] - p_Pa[0]) * C) / (p_LUT[0] - p_LUT[1]); B = (p_Pa[0] - A) * (p_LUT[0] + C);
+	out[0] = A;
+	out[1] = B;
+	out[2] = C;
+}
+
+static void icp10125_cal_press(struct icp10125_data *data, struct sensor_value *val){
 	float t;
 	float s1,s2,s3;
 	float in[3];
 	float out[3];
 	float A,B,C;
-	// t = (float)(T_LSB - 32768);
-	// s1 = data->LUT_lower + (float)(data->sensor_constants[0] * t * t) * data->quadr_factor;
-	// s2 = data->offst_factor * data->sensor_constants[3] + (float)(data->sensor_constants[1] * t * t) * data->quadr_factor;
-	// s3 = data->LUT_upper + (float)(data->sensor_constants[2] * t * t) * data->quadr_factor;
+	t = (float)(data->T_LSB - 32768);
+	s1 = data->LUT_lower + (float)(data->sensor_constants[0] * t * t) * data->quadr_factor;
+	s2 = data->offst_factor * data->sensor_constants[3] + (float)(data->sensor_constants[1] * t * t) * data->quadr_factor;
+	s3 = data->LUT_upper + (float)(data->sensor_constants[2] * t * t) * data->quadr_factor;
 	in[0] = s1;
 	in[1] = s2;
 	in[2] = s3;
-	//calculate_conversion_constants(s, s->p_Pa_calib, in, out);
+	calculate_conversion_constants(data->p_Pa_calib, in, out);
 	A = out[0];
 	B = out[1];
 	C = out[2];
-	//*pressure = A + B / (C + p_LSB);
+	val->val1 = A + B / (C + data->p_LSB);
 }
 
 static int icp10125_channel_get(const struct device *dev,
@@ -197,28 +221,12 @@ static int icp10125_channel_get(const struct device *dev,
 {
 	struct icp10125_data *data = dev->data;
 
-	uint16_t p_LSB = 0;
-
 	init_base(data, data->otp);
 
 	if(chan == SENSOR_CHAN_AMBIENT_TEMP){
 		icp10125_cal_temp(data->T_LSB, val);
 	} else if(chan == SENSOR_CHAN_PRESS){
-		//icp10125_cal_press();
-
-		// t = (float)(T_LSB - 32768);
-		// s1 = data->LUT_lower + (float)(data->sensor_constants[0] * t * t) * data->quadr_factor;
-		// s2 = data->offst_factor * data->sensor_constants[3] + (float)(data->sensor_constants[1] * t * t) * data->quadr_factor;
-		// s3 = data->LUT_upper + (float)(data->sensor_constants[2] * t * t) * data->quadr_factor;
-
-		// in[0] = s1;
-		// in[1] = s2;
-		// in[2] = s3;
-		// //calculate_conversion_constants(s, s->p_Pa_calib, in, out);
-		// A = out[0];
-		// B = out[1];
-		// C = out[2];
-		// //*pressure = A + B / (C + p_LSB);
+		icp10125_cal_press(data, val);
 	} else {
 		return -ENOTSUP;
 	}
@@ -229,7 +237,6 @@ static const struct sensor_driver_api icp10125_api_funcs = {
 	.sample_fetch = icp10125_sample_fetch,
 	.channel_get = icp10125_channel_get,
 };
-
 
 static int icp10125_init(const struct device *dev)
 {

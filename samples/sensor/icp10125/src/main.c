@@ -58,7 +58,7 @@ void main(void)
 
 		sensor_sample_fetch(dev);
 		sensor_channel_get(dev, SENSOR_CHAN_AMBIENT_TEMP, &temp);
-//		sensor_channel_get(dev, SENSOR_CHAN_PRESS, &press);
+		sensor_channel_get(dev, SENSOR_CHAN_PRESS, &press);
 /*
 		sensor_channel_get(dev, SENSOR_CHAN_AMBIENT_TEMP, &temp);
 		sensor_channel_get(dev, SENSOR_CHAN_PRESS, &press);
