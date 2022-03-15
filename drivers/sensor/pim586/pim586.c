@@ -48,7 +48,7 @@ static int pim586_reg_write_with_delay(uint8_t reg, const uint8_t *data, uint16_
 {
 	int ret = 0;
 
-	ret = reg_write(reg, data, length, dev);
+	ret = i2c_write(dev->i2c, data, length, reg);
 	if (ret == 0) {
 		k_usleep(delay_us);
 	}
@@ -60,7 +60,7 @@ static int pim586_reg_write_with_delay(uint8_t reg, const uint8_t *data, uint16_
  */
 static void pim586_compensate_temp(struct pim586_data *data, int32_t adc_temp)
 {
-	int32_t var1, var2;
+	//int32_t var1, var2;
 
 	// var1 = (((adc_temp >> 3) - ((int32_t)data->dig_t1 << 1)) *
 	// 	((int32_t)data->dig_t2)) >> 11;
@@ -81,7 +81,7 @@ static int pim586_wait_until_ready(const struct device *dev)
 	do {
 		k_sleep(K_MSEC(3));
 		//ret = pim586_reg_read(dev, PIM586_REG_STATUS, &status, 1);
-		ret = pim586_reg_read(dev, PIM586_REG_START_MEAS, &status, 1);
+		ret = i2c_read(dev, &status, 1, PIM586_REG_START_MEAS);
 		printk("status:%d\n",status);
 		if (ret < 0) {
 			return ret;
@@ -95,57 +95,103 @@ static int pim586_sample_fetch(const struct device *dev,
 			       enum sensor_channel chan)
 {
 	printk("fetch start\n");
-	struct pim586_data *data = to_data(dev);
-	uint8_t buf[5];
-	int32_t adc_press, adc_temp, adc_humidity;
-	int size = 2;
-	int ret;
-
+	struct pim586_data *data = dev->data;
+	uint8_t data_write[5];
+	uint8_t data_read[10] = {0};
+	
 	__ASSERT_NO_MSG(chan == SENSOR_CHAN_ALL);
 
-	buf[0] = PIM586_REG_SEND;
-	buf[1] = 0x95;
-	buf[2] = 0x00;
-	buf[3] = 0x66;
-	buf[4] = 0x9C;
+	data_write[0] = PIM586_REG_SEND;
+	data_write[1] = 0x95;
+	data_write[2] = 0x00;
+	data_write[3] = 0x66;
+	data_write[4] = 0x9C;
 
 	printk("fetch data_write 1\n");
-
-	if (i2c_write(data->i2c, buf, 5, 0x63) ){
+	if (i2c_write(data->i2c, data_write, 5, PIM586_I2C_ADDRESS)){
 		LOG_DBG("Failed to write address pointer");
 		return -EIO;
 	}
 
-	// ret = pim586_reg_write(dev, PIM586_REG_WRITE_HEAD, data_write);
-	// if (ret < 0) {
-	// 	printk("fetch data_write 2\n");
-	// 	LOG_DBG("CONFIG write failed: %d", ret);
-	// 	return ret;
-	// }
+	for (int i = 0; i < 4; i++) {
+		data_write[0] = 0xC7;
+		data_write[1] = 0xF7;
+		if (i2c_write(data->i2c, data_write, 2, PIM586_I2C_ADDRESS)){
+			LOG_DBG("Failed to write address pointer");
+			return -EIO;
+		}
 
+		if (i2c_read(data->i2c, data_read, 3, PIM586_I2C_ADDRESS)){
+			LOG_DBG("Failed to write address pointer");
+			return -EIO;
+		}
+	    data->otp[i] = data_read[0]<<8 | data_read[1]; 
+	}
+
+	printk("fetch read temp\n");
+	data_write[0] = 0x68;
+	data_write[0] = 0x25;
+	if (i2c_write(data->i2c, data_write, 2, PIM586_I2C_ADDRESS)){
+		LOG_DBG("Failed to write address pointer");
+		return -EIO;
+	}
+	if (i2c_read(data->i2c, data_read, 4, PIM586_I2C_ADDRESS)){
+		LOG_DBG("Failed to write address pointer");
+		return -EIO;
+	}
 
 	printk("fetch end\n");
+
 	return 0;
 }
 
+void init_base(struct pim586_data * s, short *otp)
+{ 
+	int i;
+
+	for(i = 0; i < 4; i++) s->sensor_constants[i] = (float)otp[i];
+	s->p_Pa_calib[0] = 45000.0;
+	s->p_Pa_calib[1] = 80000.0;
+	s->p_Pa_calib[2] = 105000.0;
+	s->LUT_lower = 3.5 * (1<<20);
+	s->LUT_upper = 11.5 * (1<<20);
+	s->quadr_factor = 1 / 16777216.0;
+	s->offst_factor = 2048.0;
+}
+
 static int pim586_channel_get(const struct device *dev,
-			      enum sensor_channel chan,
+                  enum sensor_channel chan,
 			      struct sensor_value *val)
 {
 	struct pim586_data *data = to_data(dev);
 
-	// switch (chan) {
-	// case SENSOR_CHAN_AMBIENT_TEMP:
-	// 	/*
-	// 	 * data->comp_temp has a resolution of 0.01 degC.  So
-	// 	 * 5123 equals 51.23 degC.
-	// 	 */
-	// 	val->val1 = data->comp_temp / 100;
-	// 	val->val2 = data->comp_temp % 100 * 10000;
-	// 	break;
-	// default:
-	// 	return -EINVAL;
-	// }
+	int T_LSB =0;
+	int p_LSB =0;
+
+	init_base(data, data->otp);
+
+	float t;
+	float s1,s2,s3;
+	float in[3];
+	float out[3];
+	float A,B,C;
+
+	t = (float)(T_LSB - 32768);
+	s1 = data->LUT_lower + (float)(data->sensor_constants[0] * t * t) * data->quadr_factor;
+	s2 = data->offst_factor * data->sensor_constants[3] + (float)(data->sensor_constants[1] * t * t) * data->quadr_factor;
+	s3= data->LUT_upper + (float)(data->sensor_constants[2] * t * t) * data->quadr_factor;
+
+	in[0] = s1;
+	in[1] = s2;
+	in[2] = s3;
+
+	//calculate_conversion_constants(s, s->p_Pa_calib, in, out);
+	A = out[0];
+	B = out[1];
+	C = out[2];
+
+	//*pressure = A + B / (C + p_LSB);
+	val->val1 = -45.f + 175.f/65536.f * T_LSB;
 
 	return 0;
 }
@@ -160,7 +206,6 @@ static int pim586_init(const struct device *dev)
 {
 	struct pim586_data *drv_dev = to_data(dev);
 	const struct pim586_dev_config *cfg = dev->config;
-	int err;
 
 	drv_dev->i2c = device_get_binding(cfg->i2c_master_name);
 	if (drv_dev->i2c == NULL) {
@@ -170,10 +215,10 @@ static int pim586_init(const struct device *dev)
 	}
 
 	drv_dev->i2c_addr = cfg->i2c_addr;
-	drv_dev->acc_odr = PIM586_ACC_ODR_100_HZ;
-	drv_dev->acc_range = 8;
-	drv_dev->gyr_odr = PIM586_GYR_ODR_200_HZ;
-	drv_dev->gyr_range = 2000;
+//	drv_dev->acc_odr = PIM586_ACC_ODR_100_HZ;
+//	drv_dev->acc_range = 8;
+//	drv_dev->gyr_odr = PIM586_GYR_ODR_200_HZ;
+//	drv_dev->gyr_range = 2000;
 
 	// k_usleep(BMI270_POWER_ON_TIME);
 
