@@ -69,6 +69,14 @@
 		};
 	};
 
+	/*spicsspins {
+		compatible = "gpio-css";
+		spicss1: spicss_1 {
+			gpios = <&gpio0 3 GPIO_ACTIVE_LOW>;
+			label = "SPI_CSS_1";
+		};
+	};*/
+
 	/* These aliases are provided for compatibility with samples */
 	aliases {
 		led0 = &led0;
@@ -81,6 +89,10 @@
 		sw2 = &button2;
 		sw3 = &button3;
 		bootloader-led0 = &led0;
+		i2c0 = &i2c0;
+		i2c1 = &i2c1;
+		/* spi1 = &spi1; */
+		/* spicss01 = &spicss1;*/
 	};
 };
 
@@ -128,10 +140,11 @@
 
 &spi1 {
 	compatible = "nordic,nrf-spi";
-	status = "okay";
+	/* status = "okay"; */
 	sck-pin = <6>;
 	mosi-pin = <5>;
 	miso-pin = <4>;
+	/*cs-gpios = <&gpio0 3 GPIO_ACTIVE_LOW>;*/
 };
 
 &flash0 {

@@ -1,0 +1,24 @@
+sample:
+  name: PIM586 Sensor sample
+tests:
+  sample.sensor.pim586:
+    harness: console
+    tags: sensors
+    platform_allow: adafruit_feather_m0_basic_proto
+    integration_platforms:
+      - adafruit_feather_m0_basic_proto
+    harness_config:
+        type: one_line
+        regex:
+            - "temp: (.*); press: (.*); humidity: (.*)"
+        fixture: fixture_i2c_pim586
+  sample.sensor.pim586.spi:
+    harness: console
+    tags: sensors
+    depends_on: spi pim586
+    extra_args: "DTC_OVERLAY_FILE=arduino_spi.overlay"
+    harness_config:
+        type: one_line
+        regex:
+            - "temp: (.*); press: (.*); humidity: (.*)"
+        fixture: fixture_spi_pim586
