@@ -20,11 +20,19 @@
 
 struct pim586_data {
 	/* Compensated values. */
-	//int32_t comp_temp;
 	const struct device *i2c;
+	short otp[4];
 	uint8_t i2c_addr;
-	uint8_t acc_range, acc_odr, gyr_odr;
-	uint16_t gyr_range;
+	uint32_t min_delay_us;
+	uint8_t pressure_en;
+	uint8_t temperature_en;
+	float sensor_constants[4]; // OTP values
+	float p_Pa_calib[3];
+	float LUT_lower;
+	float LUT_upper;
+	float quadr_factor;
+	float offst_factor;
+	int 
 };
 
 struct pim586_dev_config {
@@ -67,7 +75,9 @@ extern const struct pim586_bus_io pim586_bus_io_spi;
 extern const struct pim586_bus_io pim586_bus_io_i2c;
 #endif
 
+#define PIM586_I2C_ADDRESS              DT_INST_REG_ADDR(0)
 #define PIM586_REG_SEND                 0xC5
+
 
 #define PIM586_REG_PRESS_MSB            0xF7
 #define PIM586_REG_COMP_START           0x88
