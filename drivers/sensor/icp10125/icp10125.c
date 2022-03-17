@@ -26,88 +26,19 @@ LOG_MODULE_REGISTER(ICP10125, CONFIG_SENSOR_LOG_LEVEL);
 #warning "ICP10125 driver enabled without any devices"
 #endif
 
-static inline struct icp10125_data *to_data(const struct device *dev)
+int read_otp_from_i2c(const struct device *dev)
 {
-	return dev->data;
-}
-
-static inline int icp10125_reg_read(uint8_t reg, uint8_t *data, uint16_t length,
-		    struct icp10125_data *dev)
-{
-    return i2c_burst_read(dev->i2c, dev->i2c_addr, reg, data, length);
-}
-
-static inline int icp10125_reg_write(uint8_t reg, const uint8_t *data, uint16_t length,
-		     struct icp10125_data *dev)
-{
-	return i2c_burst_write(dev->i2c, dev->i2c_addr, reg, data, length);
-}
-
-static int icp10125_reg_write_with_delay(uint8_t reg, const uint8_t *data, uint16_t length,
-		     struct icp10125_data *dev, uint32_t delay_us)
-{
-	int ret = 0;
-
-	ret = i2c_write(dev->i2c, data, length, reg);
-	if (ret == 0) {
-		k_usleep(delay_us);
-	}
-	return ret;
-}
-/*
- * Compensation code taken from ICP10125 datasheet, Section 4.2.3
- * "Compensation formula".
- */
-static void icp10125_compensate_temp(struct icp10125_data *data, int32_t adc_temp)
-{
-	//int32_t var1, var2;
-
-	// var1 = (((adc_temp >> 3) - ((int32_t)data->dig_t1 << 1)) *
-	// 	((int32_t)data->dig_t2)) >> 11;
-	// var2 = (((((adc_temp >> 4) - ((int32_t)data->dig_t1)) *
-	// 	  ((adc_temp >> 4) - ((int32_t)data->dig_t1))) >> 12) *
-	// 	((int32_t)data->dig_t3)) >> 14;
-
-	// data->t_fine = var1 + var2;
-	// data->comp_temp = (data->t_fine * 5 + 128) >> 8;
-}
-
-static int icp10125_wait_until_ready(const struct device *dev)
-{
-	uint8_t status = 0;
-	int ret;
-
-	/* Wait for NVM to copy and and measurement to be completed */
-	do {
-		k_sleep(K_MSEC(3));
-		//ret = icp10125_reg_read(dev, ICP10125_REG_STATUS, &status, 1);
-		ret = i2c_read(dev, &status, 1, ICP10125_REG_START_MEAS);
-		printk("status:%d\n",status);
-		if (ret < 0) {
-			return ret;
-		}
-	} while (status == (157 || 168));
-
-	return 0;
-}
-
-static int icp10125_sample_fetch(const struct device *dev,
-			       enum sensor_channel chan)
-{
-	printk("fetch start\n");
+	printk("read_otp_from_i2c start\n");
 	struct icp10125_data *data = dev->data;
 	uint8_t data_write[5];
 	uint8_t data_read[10] = {0};
 	
-	__ASSERT_NO_MSG(chan == SENSOR_CHAN_ALL);
-
 	data_write[0] = ICP10125_REG_SEND;
 	data_write[1] = 0x95;
 	data_write[2] = 0x00;
 	data_write[3] = 0x66;
 	data_write[4] = 0x9C;
 
-	printk("fetch data_write 1\n");
 	if (i2c_write(data->i2c, data_write, 5, ICP10125_I2C_ADDRESS)){
 		LOG_DBG("Failed to write address pointer");
 		return -EIO;
@@ -125,8 +56,21 @@ static int icp10125_sample_fetch(const struct device *dev,
 			LOG_DBG("Failed to write address pointer");
 			return -EIO;
 		}
-	    data->otp[i] = data_read[0]<<8 | data_read[1]; 
+	    data->otp[i] = data_read[0] <<8 | data_read[1]; 
 	}
+	init_base(data);
+	return 0;
+}
+
+static int icp10125_sample_fetch(const struct device *dev,
+			       enum sensor_channel chan)
+{
+	printk("fetch start\n");
+	struct icp10125_data *data = dev->data;
+	uint8_t data_write[5];
+	uint8_t data_read[10] = {0};
+	
+	__ASSERT_NO_MSG(chan == SENSOR_CHAN_ALL);
 
 	printk("fetch read temp\n");
 	data_write[0] = 0x68;
@@ -167,11 +111,12 @@ static int icp10125_sample_fetch(const struct device *dev,
 	return 0;
 }
 
-void init_base(struct icp10125_data * s, short *otp)
+void init_base(struct icp10125_data *s)
 { 
-	int i;
-
-	for(i = 0; i < 4; i++) s->sensor_constants[i] = (float)otp[i];
+	for(int i = 0; i < 4; i++)
+	{
+		s->sensor_constants[i] = (float)s->otp[i];
+	};
 	s->p_Pa_calib[0] = 45000.0;
 	s->p_Pa_calib[1] = 80000.0;
 	s->p_Pa_calib[2] = 105000.0;
@@ -181,11 +126,6 @@ void init_base(struct icp10125_data * s, short *otp)
 	s->offst_factor = 2048.0;
 }
 
-static void icp10125_cal_temp(uint16_t T_LSB, struct sensor_value *val){
-	val->val1 = -45.f + 175.f/65536.f * T_LSB;
-	val->val2 = ((-45.f + 175.f/65536.f * T_LSB) - val->val1) * 1000000;
-}
-
 void calculate_conversion_constants(float *p_Pa, float *p_LUT, float *out)
 {
 	float A,B,C;
@@ -193,6 +133,11 @@ void calculate_conversion_constants(float *p_Pa, float *p_LUT, float *out)
 	out[0] = A;
 	out[1] = B;
 	out[2] = C;
+}
+
+static void icp10125_cal_temp(uint16_t T_LSB, struct sensor_value *val){
+	val->val1 = -45.f + 175.f/65536.f * T_LSB;
+	val->val2 = ((-45.f + 175.f/65536.f * T_LSB) - val->val1) * 1000000;
 }
 
 static void icp10125_cal_press(struct icp10125_data *data, struct sensor_value *val){
@@ -213,6 +158,7 @@ static void icp10125_cal_press(struct icp10125_data *data, struct sensor_value *
 	B = out[1];
 	C = out[2];
 	val->val1 = A + B / (C + data->p_LSB);
+	val->val2 = (A + B / (C + data->p_LSB) - val->val1) * 1000000;
 }
 
 static int icp10125_channel_get(const struct device *dev,
@@ -220,8 +166,6 @@ static int icp10125_channel_get(const struct device *dev,
 			      struct sensor_value *val)
 {
 	struct icp10125_data *data = dev->data;
-
-	init_base(data, data->otp);
 
 	if(chan == SENSOR_CHAN_AMBIENT_TEMP){
 		icp10125_cal_temp(data->T_LSB, val);
@@ -240,7 +184,7 @@ static const struct sensor_driver_api icp10125_api_funcs = {
 
 static int icp10125_init(const struct device *dev)
 {
-	struct icp10125_data *drv_dev = to_data(dev);
+	struct icp10125_data *drv_dev = dev->data;
 	const struct icp10125_dev_config *cfg = dev->config;
 
 	drv_dev->i2c = device_get_binding(cfg->i2c_master_name);
@@ -254,6 +198,12 @@ static int icp10125_init(const struct device *dev)
 
 	/* Wait for the sensor to be ready */
 	k_sleep(K_MSEC(1));
+
+	if(read_otp_from_i2c(dev))
+	{
+		LOG_DBG("Failed icp10125_attr_set");
+		return -EIO;
+	};
 
 	LOG_DBG("\"%s\" OK", dev->name);
 	printk("icp10125_init end\n");
@@ -273,12 +223,9 @@ static int icp10125_init(const struct device *dev)
  */
 #define ICP10125_DEFINE(inst)	           \
 	static struct icp10125_data icp10125_drv_##inst;			\
-	                                   \
 	static const struct icp10125_dev_config icp10125_config_##inst =	{ \
 		.i2c_master_name = DT_INST_BUS_LABEL(inst),	       \
-		.i2c_addr = DT_INST_REG_ADDR(inst),		       \
-	};                                 \
-	                                   \ 
+		.i2c_addr = DT_INST_REG_ADDR(inst)};		       \
 	DEVICE_DT_INST_DEFINE(inst,					\
 			 icp10125_init,				\
 			 NULL,				\

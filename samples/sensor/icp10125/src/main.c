@@ -42,15 +42,11 @@ void main(void)
 	k_sleep(K_MSEC(2000));
 	printk(" main-1\n ");
 	const struct device *dev = get_icp10125_device();
-	//const struct device *dev = DEVICE_DT_GET(DT_ALIAS(i2c0));
-	printk(" main-2 \n ");
 	k_sleep(K_MSEC(2000));
-	printk(" main-3 \n ");
 	if (dev == NULL) {
 		printk("dev ==null \n");
 		return;
 	}
-	printk(" main-3 \n ");
 
 	while (1) {
 		printk(" while start \n ");
@@ -59,13 +55,8 @@ void main(void)
 		sensor_sample_fetch(dev);
 		sensor_channel_get(dev, SENSOR_CHAN_AMBIENT_TEMP, &temp);
 		sensor_channel_get(dev, SENSOR_CHAN_PRESS, &press);
-/*
-		sensor_channel_get(dev, SENSOR_CHAN_AMBIENT_TEMP, &temp);
-		sensor_channel_get(dev, SENSOR_CHAN_PRESS, &press);
-		sensor_channel_get(dev, SENSOR_CHAN_HUMIDITY, &humidity);
-*/
 		printk("restart\n");
-		printk("temp.val1:%d temp.val2:%06d; press: %d;\n", temp.val1,temp.val2, press.val1);
+		printk("temp.val1:%d temp.val2:%06d; press.val1: %d press.val2: %06d;\n", temp.val1, temp.val2, press.val1, press.val2);
 
 		k_sleep(K_MSEC(3000));
 	}
