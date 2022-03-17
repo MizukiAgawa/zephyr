@@ -41,44 +41,8 @@ struct icp10125_dev_config {
 	uint16_t i2c_addr;
 };
 
-#define ICP10125_ACC_ODR_100_HZ   0x08
-#define ICP10125_GYR_ODR_200_HZ   0x09
-
-
-union icp10125_bus {
-#if ICP10125_BUS_SPI
-	struct spi_dt_spec spi;
-#endif
-#if ICP10125_BUS_I2C
-	struct i2c_dt_spec i2c;
-#endif
-};
-
-typedef int (*icp10125_bus_check_fn)(const union icp10125_bus *bus);
-typedef int (*icp10125_reg_read_fn)(const union icp10125_bus *bus,
-				  uint8_t start, uint8_t *buf, int size);
-typedef int (*icp10125_reg_write_fn)(const union icp10125_bus *bus,
-				   uint8_t reg, uint8_t val);
-
-struct icp10125_bus_io {
-	icp10125_bus_check_fn check;
-	icp10125_reg_read_fn read;
-	icp10125_reg_write_fn write;
-};
-
-#if ICP10125_BUS_SPI
-#define ICP10125_SPI_OPERATION (SPI_WORD_SET(8) | SPI_TRANSFER_MSB |	\
-			      SPI_MODE_CPOL | SPI_MODE_CPHA)
-extern const struct icp10125_bus_io icp10125_bus_io_spi;
-#endif
-
-#if ICP10125_BUS_I2C
-extern const struct icp10125_bus_io icp10125_bus_io_i2c;
-#endif
-
 #define ICP10125_I2C_ADDRESS              DT_INST_REG_ADDR(0)
 #define ICP10125_REG_SEND                 0xC5
-
 
 #define ICP10125_REG_PRESS_MSB            0xF7
 #define ICP10125_REG_COMP_START           0x88
@@ -108,89 +72,5 @@ extern const struct icp10125_bus_io icp10125_bus_io_i2c;
 #define ICP10125_CMD_SOFT_RESET           0x5D
 #define ICP10125_STATUS_MEASURING         0x08
 #define ICP10125_STATUS_IM_UPDATE         0x01
-
-#if defined CONFIG_ICP10125_MODE_NORMAL
-#define ICP10125_MODE ICP10125_MODE_NORMAL
-#elif defined CONFIG_ICP10125_MODE_FORCED
-#define ICP10125_MODE ICP10125_MODE_FORCED
-#endif
-
-#if defined CONFIG_ICP10125_TEMP_OVER_1X
-#define ICP10125_TEMP_OVER                (1 << 5)
-#elif defined CONFIG_ICP10125_TEMP_OVER_2X
-#define ICP10125_TEMP_OVER                (2 << 5)
-#elif defined CONFIG_ICP10125_TEMP_OVER_4X
-#define ICP10125_TEMP_OVER                (3 << 5)
-#elif defined CONFIG_ICP10125_TEMP_OVER_8X
-#define ICP10125_TEMP_OVER                (4 << 5)
-#elif defined CONFIG_ICP10125_TEMP_OVER_16X
-#define ICP10125_TEMP_OVER                (5 << 5)
-#endif
-
-#if defined CONFIG_ICP10125_PRESS_OVER_1X
-#define ICP10125_PRESS_OVER               (1 << 2)
-#elif defined CONFIG_ICP10125_PRESS_OVER_2X
-#define ICP10125_PRESS_OVER               (2 << 2)
-#elif defined CONFIG_ICP10125_PRESS_OVER_4X
-#define ICP10125_PRESS_OVER               (3 << 2)
-#elif defined CONFIG_ICP10125_PRESS_OVER_8X
-#define ICP10125_PRESS_OVER               (4 << 2)
-#elif defined CONFIG_ICP10125_PRESS_OVER_16X
-#define ICP10125_PRESS_OVER               (5 << 2)
-#endif
-
-#if defined CONFIG_ICP10125_HUMIDITY_OVER_1X
-#define ICP10125_HUMIDITY_OVER            1
-#elif defined CONFIG_ICP10125_HUMIDITY_OVER_2X
-#define ICP10125_HUMIDITY_OVER            2
-#elif defined CONFIG_ICP10125_HUMIDITY_OVER_4X
-#define ICP10125_HUMIDITY_OVER            3
-#elif defined CONFIG_ICP10125_HUMIDITY_OVER_8X
-#define ICP10125_HUMIDITY_OVER            4
-#elif defined CONFIG_ICP10125_HUMIDITY_OVER_16X
-#define ICP10125_HUMIDITY_OVER            5
-#endif
-
-#if defined CONFIG_ICP10125_STANDBY_05MS
-#define ICP10125_STANDBY                  0
-#elif defined CONFIG_ICP10125_STANDBY_62MS
-#define ICP10125_STANDBY                  (1 << 5)
-#elif defined CONFIG_ICP10125_STANDBY_125MS
-#define ICP10125_STANDBY                  (2 << 5)
-#elif defined CONFIG_ICP10125_STANDBY_250MS
-#define ICP10125_STANDBY                  (3 << 5)
-#elif defined CONFIG_ICP10125_STANDBY_500MS
-#define ICP10125_STANDBY                  (4 << 5)
-#elif defined CONFIG_ICP10125_STANDBY_1000MS
-#define ICP10125_STANDBY                  (5 << 5)
-#elif defined CONFIG_ICP10125_STANDBY_2000MS
-#define ICP10125_STANDBY                  (6 << 5)
-#elif defined CONFIG_ICP10125_STANDBY_4000MS
-#define ICP10125_STANDBY                  (7 << 5)
-#endif
-
-#if defined CONFIG_ICP10125_FILTER_OFF
-#define ICP10125_FILTER                   0
-#elif defined CONFIG_ICP10125_FILTER_2
-#define ICP10125_FILTER                   (1 << 2)
-#elif defined CONFIG_ICP10125_FILTER_4
-#define ICP10125_FILTER                   (2 << 2)
-#elif defined CONFIG_ICP10125_FILTER_8
-#define ICP10125_FILTER                   (3 << 2)
-#elif defined CONFIG_ICP10125_FILTER_16
-#define ICP10125_FILTER                   (4 << 2)
-#endif
-
-#define ICP10125_CTRL_MEAS_VAL            (ICP10125_PRESS_OVER | \
-					 ICP10125_TEMP_OVER |  \
-					 ICP10125_MODE)
-#define ICP10125_CONFIG_VAL               (ICP10125_STANDBY | \
-					 ICP10125_FILTER |  \
-					 ICP10125_SPI_3W_DISABLE)
-
-
-#define ICP10125_CTRL_MEAS_OFF_VAL	(ICP10125_PRESS_OVER | \
-					 ICP10125_TEMP_OVER |  \
-					 ICP10125_MODE_SLEEP)
 
 #endif /* ZEPHYR_DRIVERS_SENSOR_ICP10125_ICP10125_H_ */

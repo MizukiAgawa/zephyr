@@ -2,4 +2,4 @@
 
 zephyr_library()
 
-zephyr_library_sources(icp10125.c icp10125_i2c.c)
+zephyr_library_sources(icp10125.c)
