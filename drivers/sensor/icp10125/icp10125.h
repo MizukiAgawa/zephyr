@@ -21,7 +21,7 @@
 struct icp10125_data {
 	/* Compensated values. */
 	const struct device *i2c;
-	short otp[4];
+	int16_t otp[4];
 	uint8_t i2c_addr;
 	uint32_t min_delay_us;
 	uint8_t pressure_en;
@@ -32,8 +32,8 @@ struct icp10125_data {
 	float LUT_upper;
 	float quadr_factor;
 	float offst_factor;
-	int T_LSB;
-	int p_LSB;
+	int32_t T_LSB;
+	int32_t p_LSB;
 };
 
 struct icp10125_dev_config {

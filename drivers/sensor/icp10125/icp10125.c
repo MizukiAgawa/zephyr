@@ -26,6 +26,82 @@ LOG_MODULE_REGISTER(ICP10125, CONFIG_SENSOR_LOG_LEVEL);
 #warning "ICP10125 driver enabled without any devices"
 #endif
 
+int send_soft_reset(const struct device *dev)
+{
+	printk("send_soft_reset\n");
+	struct icp10125_data *data = dev->data;
+	uint8_t data_write[5];
+	
+	data_write[0] = 0x80;
+	data_write[1] = 0x5D;
+
+	if (i2c_write(data->i2c, data_write, 2, ICP10125_I2C_ADDRESS)){
+		LOG_DBG("Failed to write address pointer");
+		return -EIO;
+	}
+	return 0;
+}
+
+void init_base(struct icp10125_data *s)
+{ 
+	for(int i = 0; i < 4; i++)
+	{
+		s->sensor_constants[i] = (float)s->otp[i];
+	};
+	s->p_Pa_calib[0] = 45000.0;
+	s->p_Pa_calib[1] = 80000.0;
+	s->p_Pa_calib[2] = 105000.0;
+	s->LUT_lower = 3.5 * (1<<20);
+	s->LUT_upper = 11.5 * (1<<20);
+	s->quadr_factor = 1 / 16777216.0;
+	s->offst_factor = 2048.0;
+}
+
+void calculate_conversion_constants(float *p_Pa, float *p_LUT, float *out)
+{
+	float A,B,C;
+	C = (p_LUT[0] * p_LUT[1] * (p_Pa[0] - p_Pa[1]) + p_LUT[1] * p_LUT[2] * (p_Pa[1] - p_Pa[2]) + p_LUT[2] * p_LUT[0] * (p_Pa[2] - p_Pa[0])) / (p_LUT[2] * (p_Pa[0] - p_Pa[1]) + p_LUT[0] * (p_Pa[1] - p_Pa[2]) + p_LUT[1] * (p_Pa[2] - p_Pa[0]));
+	A = (p_Pa[0] * p_LUT[0] - p_Pa[1] * p_LUT[1] - (p_Pa[1] - p_Pa[0]) * C) / (p_LUT[0] - p_LUT[1]);
+	B = (p_Pa[0] - A) * (p_LUT[0] + C);
+	out[0] = A;
+	out[1] = B;
+	out[2] = C;
+}
+
+static void icp10125_cal_temp(uint16_t T_LSB, struct sensor_value *val){
+	val->val1 = -45.f + 175.f/65536.f * T_LSB;
+	val->val2 = ((-45.f + 175.f/65536.f * T_LSB) - val->val1) * 1000000;
+}
+
+static void icp10125_cal_press(struct icp10125_data *data, struct sensor_value *val){
+	float t;
+	float s1,s2,s3;
+	float in[3];
+	float out[3];
+	float A,B,C;
+	float pessure;
+	t = (float)(data->T_LSB - 32768);
+	s1 = data->LUT_lower + (float)(data->sensor_constants[0] * t * t) * data->quadr_factor;
+	s2 = data->offst_factor * data->sensor_constants[3] + (float)(data->sensor_constants[1] * t * t) * data->quadr_factor;
+	s3 = data->LUT_upper + (float)(data->sensor_constants[2] * t * t) * data->quadr_factor;
+	in[0] = s1;
+	in[1] = s2;
+	in[2] = s3;
+	calculate_conversion_constants(data->p_Pa_calib, in, out);
+	A = out[0];
+	B = out[1];
+	C = out[2];
+	printk("p_LSB:%d\n",data->p_LSB);
+	printk("data->T_LSB:%d\n",data->T_LSB);
+	printk("p_Pa_calib[0]=%d\n",(int32_t)data->p_Pa_calib[0]);
+	printk("in[0]=%d\n",(int32_t)in[0]);
+	printk("out[0]=%d\n",(int32_t)out[0]);
+	pessure = A + B / (C + data->p_LSB);
+	printk("pessure=%d\n",(int32_t)pessure);
+	val->val1 = (int32_t)(A + B / (C + data->p_LSB));
+	val->val2 = (int32_t)((A + B / (C + data->p_LSB) - val->val1) * 1000000);
+}
+
 int read_otp_from_i2c(const struct device *dev)
 {
 	printk("read_otp_from_i2c start\n");
@@ -56,7 +132,7 @@ int read_otp_from_i2c(const struct device *dev)
 			LOG_DBG("Failed to write address pointer");
 			return -EIO;
 		}
-	    data->otp[i] = data_read[0] <<8 | data_read[1]; 
+	    data->otp[i] = data_read[0] << 8 | data_read[1]; 
 	}
 	init_base(data);
 	return 0;
@@ -85,11 +161,7 @@ static int icp10125_sample_fetch(const struct device *dev,
 		}
 		break;
 	}
-	data->T_LSB = data_read[0]<<8 | data_read[1];
-	printk("data[0]:%x\n,",data_read[0]);
-	printk("data[1]:%x\n,",data_read[1]);
-	printk("data[2]:%x\n,",data_read[2]);
-	printk("data->T_LSB:%x\n,",data->T_LSB);
+	data->T_LSB = data_read[0] << 8 | data_read[1];
 
 	printk("fetch read press\n");
 	data_write[0] = 0x48;
@@ -99,66 +171,16 @@ static int icp10125_sample_fetch(const struct device *dev,
 		return -EIO;
 	}
 	while(1){
-		if (i2c_read(data->i2c, data_read, 3, ICP10125_I2C_ADDRESS)){
+		if (i2c_read(data->i2c, data_read, 6, ICP10125_I2C_ADDRESS)){
 			continue;
 		}
 		break;
 	}
-	data->p_LSB = data_read[0]<<8 | data_read[1];
+	data->p_LSB = (int32_t)(data_read[0] << 24 | data_read[1] << 16 | data_read[3] << 8 | data_read[4]);
 
 	printk("fetch end\n");
 
 	return 0;
-}
-
-void init_base(struct icp10125_data *s)
-{ 
-	for(int i = 0; i < 4; i++)
-	{
-		s->sensor_constants[i] = (float)s->otp[i];
-	};
-	s->p_Pa_calib[0] = 45000.0;
-	s->p_Pa_calib[1] = 80000.0;
-	s->p_Pa_calib[2] = 105000.0;
-	s->LUT_lower = 3.5 * (1<<20);
-	s->LUT_upper = 11.5 * (1<<20);
-	s->quadr_factor = 1 / 16777216.0;
-	s->offst_factor = 2048.0;
-}
-
-void calculate_conversion_constants(float *p_Pa, float *p_LUT, float *out)
-{
-	float A,B,C;
-	C = (p_LUT[0] * p_LUT[1] * (p_Pa[0] - p_Pa[1]) + p_LUT[1] * p_LUT[2] * (p_Pa[1] - p_Pa[2]) + p_LUT[2] * p_LUT[0] * (p_Pa[2] - p_Pa[0])) / (p_LUT[2] * (p_Pa[0] - p_Pa[1]) + p_LUT[0] * (p_Pa[1] - p_Pa[2]) + p_LUT[1] * (p_Pa[2] - p_Pa[0])); A = (p_Pa[0] * p_LUT[0] - p_Pa[1] * p_LUT[1] - (p_Pa[1] - p_Pa[0]) * C) / (p_LUT[0] - p_LUT[1]); B = (p_Pa[0] - A) * (p_LUT[0] + C);
-	out[0] = A;
-	out[1] = B;
-	out[2] = C;
-}
-
-static void icp10125_cal_temp(uint16_t T_LSB, struct sensor_value *val){
-	val->val1 = -45.f + 175.f/65536.f * T_LSB;
-	val->val2 = ((-45.f + 175.f/65536.f * T_LSB) - val->val1) * 1000000;
-}
-
-static void icp10125_cal_press(struct icp10125_data *data, struct sensor_value *val){
-	float t;
-	float s1,s2,s3;
-	float in[3];
-	float out[3];
-	float A,B,C;
-	t = (float)(data->T_LSB - 32768);
-	s1 = data->LUT_lower + (float)(data->sensor_constants[0] * t * t) * data->quadr_factor;
-	s2 = data->offst_factor * data->sensor_constants[3] + (float)(data->sensor_constants[1] * t * t) * data->quadr_factor;
-	s3 = data->LUT_upper + (float)(data->sensor_constants[2] * t * t) * data->quadr_factor;
-	in[0] = s1;
-	in[1] = s2;
-	in[2] = s3;
-	calculate_conversion_constants(data->p_Pa_calib, in, out);
-	A = out[0];
-	B = out[1];
-	C = out[2];
-	val->val1 = A + B / (C + data->p_LSB);
-	val->val2 = (A + B / (C + data->p_LSB) - val->val1) * 1000000;
 }
 
 static int icp10125_channel_get(const struct device *dev,
@@ -195,6 +217,13 @@ static int icp10125_init(const struct device *dev)
 	}
 
 	drv_dev->i2c_addr = cfg->i2c_addr;
+
+	//soft reset
+	if(send_soft_reset(dev))
+	{
+		LOG_DBG("Failed icp10125_attr_set");
+		return -EIO;
+	};
 
 	/* Wait for the sensor to be ready */
 	k_sleep(K_MSEC(1));
