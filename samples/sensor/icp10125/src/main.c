@@ -16,7 +16,6 @@
  */
 static const struct device *get_icp10125_device(void)
 {
-	printk("get-device-1\n ");
 	const struct device *dev = DEVICE_DT_GET_ANY(tdk_icp10125);
 
 	if (dev == NULL) {
@@ -25,7 +24,6 @@ static const struct device *get_icp10125_device(void)
 		return NULL;
 	}
 
-	printk("get-device-2\n ");
 	if (!device_is_ready(dev)) {
 		printk("\nError: Device \"%s\" is not ready; "
 		       "check the driver initialization logs for errors.\n",
@@ -40,7 +38,6 @@ static const struct device *get_icp10125_device(void)
 void main(void)
 {
 	k_sleep(K_MSEC(2000));
-	printk(" main-1\n ");
 	const struct device *dev = get_icp10125_device();
 	k_sleep(K_MSEC(2000));
 	if (dev == NULL) {
@@ -49,15 +46,14 @@ void main(void)
 	}
 
 	while (1) {
-		printk(" while start \n ");
 		struct sensor_value temp, press;
 
-		sensor_sample_fetch(dev);
+		sensor_sample_fetch_chan(dev, SENSOR_CHAN_AMBIENT_TEMP);
 		sensor_channel_get(dev, SENSOR_CHAN_AMBIENT_TEMP, &temp);
+		printk("temp.val1:%d temp.val2:%06d;\n", temp.val1, temp.val2);
+		sensor_sample_fetch_chan(dev, SENSOR_CHAN_PRESS);
 		sensor_channel_get(dev, SENSOR_CHAN_PRESS, &press);
-		printk("restart\n");
-		printk("temp.val1:%d temp.val2:%06d; press.val1: %d press.val2: %06d;\n", temp.val1, temp.val2, press.val1, press.val2);
-
+		printk("press.val1: %d press.val2: %06d;\n",press.val1, press.val2);
 		k_sleep(K_MSEC(3000));
 	}
 }

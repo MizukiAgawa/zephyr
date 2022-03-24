@@ -41,6 +41,35 @@ struct icp10125_dev_config {
 	uint16_t i2c_addr;
 };
 
+#define CONVERSION_TIME_T 1600
+#define CONVERSION_TIME_P 1600
+#ifdef MODE_LP_T
+#define CONVERSION_TIME_T 1600
+#endif
+#ifdef MODE_N_T
+#define CONVERSION_TIME_T 5600
+#endif
+#ifdef MODE_LN_T
+#define CONVERSION_TIME_T 20800
+#endif
+#ifdef MODE_ULN_T
+#define CONVERSION_TIME_T 83200
+#endif
+
+#ifdef MODE_LP_P
+#define CONVERSION_TIME_P 1600
+#endif
+#ifdef MODE_N_P
+#define CONVERSION_TIME_P 5600
+#endif
+#ifdef MODE_LN_P
+#define CONVERSION_TIME_P 20800
+#endif
+#ifdef MODE_ULN_P
+#define CONVERSION_TIME_P 83200
+#endif
+
+
 #define ICP10125_I2C_ADDRESS              DT_INST_REG_ADDR(0)
 #define ICP10125_REG_SEND                 0xC5
 

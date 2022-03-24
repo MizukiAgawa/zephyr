@@ -28,7 +28,6 @@ LOG_MODULE_REGISTER(ICP10125, CONFIG_SENSOR_LOG_LEVEL);
 
 int send_soft_reset(const struct device *dev)
 {
-	printk("send_soft_reset\n");
 	struct icp10125_data *data = dev->data;
 	uint8_t data_write[5];
 	
@@ -91,20 +90,13 @@ static void icp10125_cal_press(struct icp10125_data *data, struct sensor_value *
 	A = out[0];
 	B = out[1];
 	C = out[2];
-	printk("p_LSB:%d\n",data->p_LSB);
-	printk("data->T_LSB:%d\n",data->T_LSB);
-	printk("p_Pa_calib[0]=%d\n",(int32_t)data->p_Pa_calib[0]);
-	printk("in[0]=%d\n",(int32_t)in[0]);
-	printk("out[0]=%d\n",(int32_t)out[0]);
 	pessure = A + B / (C + data->p_LSB);
-	printk("pessure=%d\n",(int32_t)pessure);
 	val->val1 = (int32_t)(A + B / (C + data->p_LSB));
 	val->val2 = (int32_t)((A + B / (C + data->p_LSB) - val->val1) * 1000000);
 }
 
-int read_otp_from_i2c(const struct device *dev)
+int read_otp(const struct device *dev)
 {
-	printk("read_otp_from_i2c start\n");
 	struct icp10125_data *data = dev->data;
 	uint8_t data_write[5];
 	uint8_t data_read[10] = {0};
@@ -141,44 +133,56 @@ int read_otp_from_i2c(const struct device *dev)
 static int icp10125_sample_fetch(const struct device *dev,
 			       enum sensor_channel chan)
 {
-	printk("fetch start\n");
 	struct icp10125_data *data = dev->data;
 	uint8_t data_write[5];
 	uint8_t data_read[10] = {0};
 	
 	__ASSERT_NO_MSG(chan == SENSOR_CHAN_ALL);
 
-	printk("fetch read temp\n");
-	data_write[0] = 0x68;
-	data_write[1] = 0x25;
-	if (i2c_write(data->i2c, data_write, 2, ICP10125_I2C_ADDRESS)){
-		LOG_DBG("Failed to write address pointer");
-		return -EIO;
-	}
-	while(1){
-		if (i2c_read(data->i2c, data_read, 3, ICP10125_I2C_ADDRESS)){
-			continue;
+	if(chan == SENSOR_CHAN_AMBIENT_TEMP || chan == SENSOR_CHAN_ALL){
+		data_write[0] = 0x68;
+		data_write[1] = 0x25;
+		if (i2c_write(data->i2c, data_write, 2, ICP10125_I2C_ADDRESS)){
+			LOG_DBG("Failed to write address pointer");
+			return -EIO;
 		}
-		break;
-	}
-	data->T_LSB = data_read[0] << 8 | data_read[1];
-
-	printk("fetch read press\n");
-	data_write[0] = 0x48;
-	data_write[1] = 0xA3;
-	if (i2c_write(data->i2c, data_write, 2, ICP10125_I2C_ADDRESS)){
-		LOG_DBG("Failed to write address pointer");
-		return -EIO;
-	}
-	while(1){
-		if (i2c_read(data->i2c, data_read, 6, ICP10125_I2C_ADDRESS)){
-			continue;
+		while(1){
+			int count = 0;
+			if(count >= 2){
+				return -EIO;
+			}
+			if (i2c_read(data->i2c, data_read, 3, ICP10125_I2C_ADDRESS)){
+				count++;
+				k_sleep(K_USEC(CONVERSION_TIME_T));
+				continue;
+			}
+			break;
 		}
-		break;
+		data->T_LSB = data_read[0] << 8 | data_read[1];
 	}
-	data->p_LSB = (int32_t)(data_read[0] << 24 | data_read[1] << 16 | data_read[3] << 8 | data_read[4]);
 
-	printk("fetch end\n");
+	if(chan == SENSOR_CHAN_PRESS || chan == SENSOR_CHAN_ALL){
+		data_write[0] = 0x48;
+		data_write[1] = 0xA3;
+		if (i2c_write(data->i2c, data_write, 2, ICP10125_I2C_ADDRESS)){
+			LOG_DBG("Failed to write address pointer");
+			return -EIO;
+		}
+		while(1){
+			int count = 0;
+			if(count >= 2){
+				return -EIO;
+			}
+			if (i2c_read(data->i2c, data_read, 9, ICP10125_I2C_ADDRESS)){
+				count++;
+				k_sleep(K_USEC(CONVERSION_TIME_P));
+				continue;
+			}
+			break;
+		}
+		data->p_LSB = (int32_t)(data_read[0] << 16 | data_read[1] << 8 | data_read[3]);
+		data->T_LSB = data_read[6] << 8 | data_read[7];
+	}
 
 	return 0;
 }
@@ -221,30 +225,22 @@ static int icp10125_init(const struct device *dev)
 	//soft reset
 	if(send_soft_reset(dev))
 	{
-		LOG_DBG("Failed icp10125_attr_set");
+		LOG_DBG("Failed send_soft_reset error");
 		return -EIO;
 	};
 
 	/* Wait for the sensor to be ready */
 	k_sleep(K_MSEC(1));
 
-	if(read_otp_from_i2c(dev))
+	if(read_otp(dev))
 	{
-		LOG_DBG("Failed icp10125_attr_set");
+		LOG_DBG("Failed read_otp error");
 		return -EIO;
 	};
 
 	LOG_DBG("\"%s\" OK", dev->name);
-	printk("icp10125_init end\n");
 	return 0;
 }
-
-/* Initializes a struct icp10125_config for an instance on an I2C bus. */
-#define ICP10125_CONFIG_I2C(inst)			       \
-	{					       \
-		.bus.i2c = I2C_DT_SPEC_INST_GET(inst), \
-		.bus_io = &icp10125_bus_io_i2c,	       \
-	}
 
 /*
  * Main instantiation macro, which selects the correct bus-specific
