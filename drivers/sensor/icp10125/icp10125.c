@@ -33,6 +33,7 @@ const uint8_t MEAS_ADDR_P[4][2] = {{0x40, 0x1A},{0x48, 0xA3},{0x50, 0x59},{0x59,
 // const uint8_t MEAS_ADDR_P_H[4] = {0x40, 0x48, 0x50, 0x59};
 // const uint8_t MEAS_ADDR_P_L[4] = {0x1A, 0xA3, 0x59, 0xE0};
 const uint32_t CONVERSION_TIME_MAX[4] = {1800, 6300, 23800, 94500};
+const uint32_t CONVERSION_TIME_TYP[4] = {1800, 6300, 23800, 94500};
 
 #if DT_NUM_INST_STATUS_OKAY(DT_DRV_COMPAT) == 0
 #warning "ICP10125 driver enabled without any devices"
@@ -127,51 +128,38 @@ static int icp10125_sample_fetch(const struct device *dev,
 	struct icp10125_data *data = dev->data;
 	const struct icp10125_dev_config *cfg = dev->config;
 	
-	__ASSERT_NO_MSG(chan == SENSOR_CHAN_ALL);
-
 	if(chan == SENSOR_CHAN_AMBIENT_TEMP || chan == SENSOR_CHAN_ALL){
-		uint8_t read_data[3] = {0};
 		printk("op_mode-t:%d\n",cfg->op_mode_t);
 		if (i2c_write(data->i2c, MEAS_ADDR_T[cfg->op_mode_t], 2, ICP10125_I2C_ADDRESS)){
 			LOG_DBG("Failed to write address pointer");
 			return -EIO;
 		}
-		while(1){
-			int count = 0;
-			if(count >= 2){
+
+		k_sleep(K_USEC(CONVERSION_TIME_TYP[cfg->op_mode_t]));
+		if (i2c_read(data->i2c, data->read_data, 3, ICP10125_I2C_ADDRESS)){
+			k_sleep(K_USEC(CONVERSION_TIME_MAX[cfg->op_mode_t] - CONVERSION_TIME_TYP[cfg->op_mode_t]));
+			if (i2c_read(data->i2c, data->read_data, 3, ICP10125_I2C_ADDRESS)){
 				return -EIO;
 			}
-			if (i2c_read(data->i2c, read_data, 3, ICP10125_I2C_ADDRESS)){
-				count++;
-				k_sleep(K_USEC(CONVERSION_TIME_MAX[cfg->op_mode_t]));
-				continue;
-			}
-			break;
 		}
-		data->T_LSB = read_data[0] << 8 | read_data[1];
+		data->T_LSB = data->read_data[0] << 8 | data->read_data[1];
 	}
 
 	if(chan == SENSOR_CHAN_PRESS || chan == SENSOR_CHAN_ALL){
-		uint8_t read_data[9] = {0};
 		printk("op_mode-p:%d\n",cfg->op_mode_p);
 		if (i2c_write(data->i2c, MEAS_ADDR_P[cfg->op_mode_p], 2, ICP10125_I2C_ADDRESS)){
 			LOG_DBG("Failed to write address pointer");
 			return -EIO;
 		}
-		while(1){
-			int count = 0;
-			if(count >= 2){
+		k_sleep(K_USEC(CONVERSION_TIME_TYP[cfg->op_mode_p]));
+		if (i2c_read(data->i2c, data->read_data, 9, ICP10125_I2C_ADDRESS)){
+			k_sleep(K_USEC(CONVERSION_TIME_MAX[cfg->op_mode_p] - CONVERSION_TIME_TYP[cfg->op_mode_p]));
+			if (i2c_read(data->i2c, data->read_data, 9, ICP10125_I2C_ADDRESS)){
 				return -EIO;
 			}
-			if (i2c_read(data->i2c, read_data, 9, ICP10125_I2C_ADDRESS)){
-				count++;
-				k_sleep(K_USEC(CONVERSION_TIME_MAX[cfg->op_mode_p]));
-				continue;
-			}
-			break;
 		}
-		data->p_LSB = (int32_t)(read_data[0] << 16 | read_data[1] << 8 | read_data[3]);
-		data->T_LSB = read_data[6] << 8 | read_data[7];
+		data->p_LSB = (int32_t)(data->read_data[0] << 16 | data->read_data[1] << 8 | data->read_data[3]);
+		data->T_LSB = data->read_data[6] << 8 | data->read_data[7];
 	}
 
 	return 0;

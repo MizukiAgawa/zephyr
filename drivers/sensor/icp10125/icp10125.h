@@ -27,6 +27,7 @@ struct icp10125_data {
 	float offst_factor;
 	int32_t T_LSB;
 	int32_t p_LSB;
+	uint8_t read_data[9];
 };
 
 struct icp10125_dev_config {
