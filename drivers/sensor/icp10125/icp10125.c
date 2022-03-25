@@ -134,8 +134,8 @@ static int icp10125_sample_fetch(const struct device *dev,
 			       enum sensor_channel chan)
 {
 	struct icp10125_data *data = dev->data;
-	uint8_t data_write[5];
-	uint8_t data_read[10] = {0};
+	uint8_t data_write[4];
+	uint8_t data_read[9] = {0};
 	
 	__ASSERT_NO_MSG(chan == SENSOR_CHAN_ALL);
 

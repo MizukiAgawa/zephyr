@@ -1,10 +1,9 @@
-# BMP280 temperature and pressure sensor configuration options
+# ICP10125 temperature and pressure sensor configuration options
 
-# Copyright (c) 2016 Intel Corporation
-# Copyright (c) 2017 IpTronix S.r.l.
+# Copyright (c) 2022 Mizuki AGAWA <agawa.mizuki@fujitsu.com>
 # SPDX-License-Identifier: Apache-2.0
 
 menuconfig ICP10125
 	bool "ICP10125 sensor"
 	help
-	  Enable driver for ICP10125 I2C-based or SPI-based temperature and pressure sensor.
+	  Enable driver for ICP10125 temperature and pressure sensor.

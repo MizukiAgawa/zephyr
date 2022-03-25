@@ -23,7 +23,6 @@ struct icp10125_data {
 	const struct device *i2c;
 	int16_t otp[4];
 	uint8_t i2c_addr;
-	uint32_t min_delay_us;
 	uint8_t pressure_en;
 	uint8_t temperature_en;
 	float sensor_constants[4]; // OTP values
