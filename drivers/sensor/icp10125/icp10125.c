@@ -1,9 +1,7 @@
-/* icp10125.c - Driver for Bosch ICP10125 temperature and pressure sensor */
+/* icp10125.c - Driver for TDK ICP10125 temperature and pressure sensor */
 
 /*
- * Copyright (c) 2016, 2017 Intel Corporation
- * Copyright (c) 2017 IpTronix S.r.l.
- * Copyright (c) 2021 Nordic Semiconductor ASA
+ * Copyright (c) 2022 Mizuki AGAWA <agawa.mizuki@fujitsu.com>
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -22,57 +20,18 @@
 
 LOG_MODULE_REGISTER(ICP10125, CONFIG_SENSOR_LOG_LEVEL);
 
-
-
 #define DT_DRV_COMPAT tdk_icp10125
 #define ICP10125_BUS_I2C DT_ANY_INST_ON_BUS_STATUS_OKAY(i2c)
 #define ICP10125_I2C_ADDRESS              DT_INST_REG_ADDR(0)
 
-
 #define MODE_LP_T
 #define MODE_LP_P
 
-#ifdef MODE_LP_T
-#define CONVERSION_TIME_T 1800
-#define MEAS_ADDR_T_H 0x60
-#define MEAS_ADDR_T_L 0x9C
-#endif
-#ifdef MODE_N_T
-#define CONVERSION_TIME_T 6300
-#define MEAS_ADDR_T_H 0x68
-#define MEAS_ADDR_T_L 0x25
-#endif
-#ifdef MODE_LN_T
-#define CONVERSION_TIME_T 23800
-#define MEAS_ADDR_T_H 0x70
-#define MEAS_ADDR_T_L 0xDF
-#endif
-#ifdef MODE_ULN_T
-#define CONVERSION_TIME_T 94500
-#define MEAS_ADDR_T_H 0x78
-#define MEAS_ADDR_T_L 0x66
-#endif
-
-#ifdef MODE_LP_P
-#define CONVERSION_TIME_P 1800
-#define MEAS_ADDR_P_H 0x40
-#define MEAS_ADDR_P_L 0x1A
-#endif
-#ifdef MODE_N_P
-#define CONVERSION_TIME_P 6300
-#define MEAS_ADDR_P_H 0x48
-#define MEAS_ADDR_P_L 0xA3
-#endif
-#ifdef MODE_LN_P
-#define CONVERSION_TIME_P 23800
-#define MEAS_ADDR_P_H 0x50
-#define MEAS_ADDR_P_L 0x59
-#endif
-#ifdef MODE_ULN_P
-#define CONVERSION_TIME_P 94500
-#define MEAS_ADDR_P_H 0x58
-#define MEAS_ADDR_P_L 0xE0
-#endif
+const uint8_t MEAS_ADDR_T_H[4] = {0x60, 0x68, 0x70, 0x78};
+const uint8_t MEAS_ADDR_T_L[4] = {0x9C, 0x25, 0xDF, 0x66};
+const uint8_t MEAS_ADDR_P_H[4] = {0x40, 0x48, 0x50, 0x59};
+const uint8_t MEAS_ADDR_P_L[4] = {0x1A, 0xA3, 0x59, 0xE0};
+const uint32_t CONVERSION_TIME_MAX[4] = {1800, 6300, 23800, 94500};
 
 #define CALIBRATION_PARAME_SEND_01 0xC5
 #define CALIBRATION_PARAME_SEND_02 0x95
@@ -82,9 +41,6 @@ LOG_MODULE_REGISTER(ICP10125, CONFIG_SENSOR_LOG_LEVEL);
 
 #define CALIBRATION_PARAME_READ_01 0xC7
 #define CALIBRATION_PARAME_READ_02 0xF7
-
-
-
 
 #if DT_NUM_INST_STATUS_OKAY(DT_DRV_COMPAT) == 0
 #warning "ICP10125 driver enabled without any devices"
@@ -198,14 +154,15 @@ static int icp10125_sample_fetch(const struct device *dev,
 			       enum sensor_channel chan)
 {
 	struct icp10125_data *data = dev->data;
+	const struct icp10125_dev_config *cfg = dev->config;
 	uint8_t data_write[4];
 	uint8_t data_read[9] = {0};
 	
 	__ASSERT_NO_MSG(chan == SENSOR_CHAN_ALL);
 
 	if(chan == SENSOR_CHAN_AMBIENT_TEMP || chan == SENSOR_CHAN_ALL){
-		data_write[0] = MEAS_ADDR_T_H;
-		data_write[1] = MEAS_ADDR_T_L;
+		data_write[0] = MEAS_ADDR_T_H[cfg->op_mode];
+		data_write[1] = MEAS_ADDR_T_L[cfg->op_mode];
 		if (i2c_write(data->i2c, data_write, 2, ICP10125_I2C_ADDRESS)){
 			LOG_DBG("Failed to write address pointer");
 			return -EIO;
@@ -217,7 +174,7 @@ static int icp10125_sample_fetch(const struct device *dev,
 			}
 			if (i2c_read(data->i2c, data_read, 3, ICP10125_I2C_ADDRESS)){
 				count++;
-				k_sleep(K_USEC(CONVERSION_TIME_T));
+				k_sleep(K_USEC(CONVERSION_TIME_MAX[cfg->op_mode]));
 				continue;
 			}
 			break;
@@ -226,8 +183,8 @@ static int icp10125_sample_fetch(const struct device *dev,
 	}
 
 	if(chan == SENSOR_CHAN_PRESS || chan == SENSOR_CHAN_ALL){
-		data_write[0] = MEAS_ADDR_P_H;
-		data_write[1] = MEAS_ADDR_P_L;
+		data_write[0] = MEAS_ADDR_P_H[cfg->op_mode];
+		data_write[1] = MEAS_ADDR_P_L[cfg->op_mode];
 		if (i2c_write(data->i2c, data_write, 2, ICP10125_I2C_ADDRESS)){
 			LOG_DBG("Failed to write address pointer");
 			return -EIO;
@@ -239,7 +196,7 @@ static int icp10125_sample_fetch(const struct device *dev,
 			}
 			if (i2c_read(data->i2c, data_read, 9, ICP10125_I2C_ADDRESS)){
 				count++;
-				k_sleep(K_USEC(CONVERSION_TIME_P));
+				k_sleep(K_USEC(CONVERSION_TIME_MAX[cfg->op_mode]));
 				continue;
 			}
 			break;
@@ -285,6 +242,7 @@ static int icp10125_init(const struct device *dev)
 	}
 
 	drv_dev->i2c_addr = cfg->i2c_addr;
+	//cfg->op_mode = 1;
 
 	//soft reset
 	if(send_soft_reset(dev))

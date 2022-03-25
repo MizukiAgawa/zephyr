@@ -6,3 +6,13 @@ description: ICP10125 temperature/pressure sensor
 compatible: "tdk,icp10125"
 
 include: i2c-device.yaml
+
+properties:
+    op-mode:
+      type: string
+      required: false
+      description: Operating mode of sensor
+      enum:
+        - "low-power"
+        - "normal"
+        - "high-perf"

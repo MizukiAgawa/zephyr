@@ -32,6 +32,7 @@ struct icp10125_data {
 struct icp10125_dev_config {
 	const char *i2c_master_name;
 	uint16_t i2c_addr;
+	uint8_t op_mode;
 };
 
 #endif /* ZEPHYR_DRIVERS_SENSOR_ICP10125_ICP10125_H_ */
