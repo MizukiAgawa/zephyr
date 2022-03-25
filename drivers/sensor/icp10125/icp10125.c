@@ -24,42 +24,19 @@ LOG_MODULE_REGISTER(ICP10125, CONFIG_SENSOR_LOG_LEVEL);
 #define ICP10125_BUS_I2C DT_ANY_INST_ON_BUS_STATUS_OKAY(i2c)
 #define ICP10125_I2C_ADDRESS              DT_INST_REG_ADDR(0)
 
-#define MODE_LP_T
-#define MODE_LP_P
 
-const uint8_t MEAS_ADDR_T_H[4] = {0x60, 0x68, 0x70, 0x78};
-const uint8_t MEAS_ADDR_T_L[4] = {0x9C, 0x25, 0xDF, 0x66};
-const uint8_t MEAS_ADDR_P_H[4] = {0x40, 0x48, 0x50, 0x59};
-const uint8_t MEAS_ADDR_P_L[4] = {0x1A, 0xA3, 0x59, 0xE0};
+const uint8_t MEAS_ADDR_T[4][2] = {{0x60, 0x9C},{0x68, 0x25},{0x70, 0xDF},{0x78,0x66}};
+const uint8_t MEAS_ADDR_P[4][2] = {{0x40, 0x1A},{0x48, 0xA3},{0x50, 0x59},{0x59, 0xE0}};
+
+// // const uint8_t MEAS_ADDR_T_H[4] = {0x60, 0x68, 0x70, 0x78};
+// // const uint8_t MEAS_ADDR_T_L[4] = {0x9C, 0x25, 0xDF, 0x66};
+// const uint8_t MEAS_ADDR_P_H[4] = {0x40, 0x48, 0x50, 0x59};
+// const uint8_t MEAS_ADDR_P_L[4] = {0x1A, 0xA3, 0x59, 0xE0};
 const uint32_t CONVERSION_TIME_MAX[4] = {1800, 6300, 23800, 94500};
-
-#define CALIBRATION_PARAME_SEND_01 0xC5
-#define CALIBRATION_PARAME_SEND_02 0x95
-#define CALIBRATION_PARAME_SEND_03 0x00
-#define CALIBRATION_PARAME_SEND_04 0x66
-#define CALIBRATION_PARAME_SEND_05 0x9C
-
-#define CALIBRATION_PARAME_READ_01 0xC7
-#define CALIBRATION_PARAME_READ_02 0xF7
 
 #if DT_NUM_INST_STATUS_OKAY(DT_DRV_COMPAT) == 0
 #warning "ICP10125 driver enabled without any devices"
 #endif
-
-int send_soft_reset(const struct device *dev)
-{
-	struct icp10125_data *data = dev->data;
-	uint8_t data_write[5];
-	
-	data_write[0] = 0x80;
-	data_write[1] = 0x5D;
-
-	if (i2c_write(data->i2c, data_write, 2, ICP10125_I2C_ADDRESS)){
-		LOG_DBG("Failed to write address pointer");
-		return -EIO;
-	}
-	return 0;
-}
 
 void init_base(struct icp10125_data *s)
 { 
@@ -115,38 +92,32 @@ static void icp10125_cal_press(struct icp10125_data *data, struct sensor_value *
 	val->val2 = (int32_t)((A + B / (C + data->p_LSB) - val->val1) * 1000000);
 }
 
-int read_otp(const struct device *dev)
+static int read_otp(const struct device *dev)
 {
 	struct icp10125_data *data = dev->data;
-	uint8_t data_write[5];
-	uint8_t data_read[10] = {0};
+	const uint8_t otp_read_setup_cmd[] = {0xC5, 0x95, 0x00, 0x66, 0x9C};
+	const uint8_t otp_read_request_cmd[] = {0xC7, 0xF7};
+	uint8_t otp_data[3] = {0};
 	
-	data_write[0] = CALIBRATION_PARAME_SEND_01;
-	data_write[1] = CALIBRATION_PARAME_SEND_02;
-	data_write[2] = CALIBRATION_PARAME_SEND_03;
-	data_write[3] = CALIBRATION_PARAME_SEND_04;
-	data_write[4] = CALIBRATION_PARAME_SEND_05;
-
-	if (i2c_write(data->i2c, data_write, 5, ICP10125_I2C_ADDRESS)){
+	if (i2c_write(data->i2c, otp_read_setup_cmd, sizeof(otp_read_setup_cmd), ICP10125_I2C_ADDRESS)){
 		LOG_DBG("Failed to write address pointer");
 		return -EIO;
 	}
 
 	for (int i = 0; i < 4; i++) {
-		data_write[0] = CALIBRATION_PARAME_READ_01;
-		data_write[1] = CALIBRATION_PARAME_READ_02;
-		if (i2c_write(data->i2c, data_write, 2, ICP10125_I2C_ADDRESS)){
+		if (i2c_write(data->i2c, otp_read_request_cmd, sizeof(otp_read_request_cmd), ICP10125_I2C_ADDRESS)){
 			LOG_DBG("Failed to write address pointer");
 			return -EIO;
 		}
 
-		if (i2c_read(data->i2c, data_read, 3, ICP10125_I2C_ADDRESS)){
+		if (i2c_read(data->i2c, otp_data, sizeof(otp_data), ICP10125_I2C_ADDRESS)){
 			LOG_DBG("Failed to write address pointer");
 			return -EIO;
 		}
-	    data->otp[i] = data_read[0] << 8 | data_read[1]; 
+	    data->otp[i] = otp_data[0] << 8 | otp_data[1]; 
 	}
 	init_base(data);
+
 	return 0;
 }
 
@@ -155,16 +126,13 @@ static int icp10125_sample_fetch(const struct device *dev,
 {
 	struct icp10125_data *data = dev->data;
 	const struct icp10125_dev_config *cfg = dev->config;
-	uint8_t data_write[4];
-	uint8_t data_read[9] = {0};
 	
 	__ASSERT_NO_MSG(chan == SENSOR_CHAN_ALL);
 
 	if(chan == SENSOR_CHAN_AMBIENT_TEMP || chan == SENSOR_CHAN_ALL){
-		data_write[0] = MEAS_ADDR_T_H[cfg->op_mode_t];
-		data_write[1] = MEAS_ADDR_T_L[cfg->op_mode_t];
+		uint8_t read_data[3] = {0};
 		printk("op_mode-t:%d\n",cfg->op_mode_t);
-		if (i2c_write(data->i2c, data_write, 2, ICP10125_I2C_ADDRESS)){
+		if (i2c_write(data->i2c, MEAS_ADDR_T[cfg->op_mode_t], 2, ICP10125_I2C_ADDRESS)){
 			LOG_DBG("Failed to write address pointer");
 			return -EIO;
 		}
@@ -173,21 +141,20 @@ static int icp10125_sample_fetch(const struct device *dev,
 			if(count >= 2){
 				return -EIO;
 			}
-			if (i2c_read(data->i2c, data_read, 3, ICP10125_I2C_ADDRESS)){
+			if (i2c_read(data->i2c, read_data, 3, ICP10125_I2C_ADDRESS)){
 				count++;
 				k_sleep(K_USEC(CONVERSION_TIME_MAX[cfg->op_mode_t]));
 				continue;
 			}
 			break;
 		}
-		data->T_LSB = data_read[0] << 8 | data_read[1];
+		data->T_LSB = read_data[0] << 8 | read_data[1];
 	}
 
 	if(chan == SENSOR_CHAN_PRESS || chan == SENSOR_CHAN_ALL){
-		data_write[0] = MEAS_ADDR_P_H[cfg->op_mode_p];
-		data_write[1] = MEAS_ADDR_P_L[cfg->op_mode_p];
-		printk("op_mode-t:%d\n",cfg->op_mode_p);
-		if (i2c_write(data->i2c, data_write, 2, ICP10125_I2C_ADDRESS)){
+		uint8_t read_data[9] = {0};
+		printk("op_mode-p:%d\n",cfg->op_mode_p);
+		if (i2c_write(data->i2c, MEAS_ADDR_P[cfg->op_mode_p], 2, ICP10125_I2C_ADDRESS)){
 			LOG_DBG("Failed to write address pointer");
 			return -EIO;
 		}
@@ -196,15 +163,15 @@ static int icp10125_sample_fetch(const struct device *dev,
 			if(count >= 2){
 				return -EIO;
 			}
-			if (i2c_read(data->i2c, data_read, 9, ICP10125_I2C_ADDRESS)){
+			if (i2c_read(data->i2c, read_data, 9, ICP10125_I2C_ADDRESS)){
 				count++;
 				k_sleep(K_USEC(CONVERSION_TIME_MAX[cfg->op_mode_p]));
 				continue;
 			}
 			break;
 		}
-		data->p_LSB = (int32_t)(data_read[0] << 16 | data_read[1] << 8 | data_read[3]);
-		data->T_LSB = data_read[6] << 8 | data_read[7];
+		data->p_LSB = (int32_t)(read_data[0] << 16 | read_data[1] << 8 | read_data[3]);
+		data->T_LSB = read_data[6] << 8 | read_data[7];
 	}
 
 	return 0;
@@ -244,16 +211,6 @@ static int icp10125_init(const struct device *dev)
 	}
 
 	drv_dev->i2c_addr = cfg->i2c_addr;
-
-	//soft reset
-	if(send_soft_reset(dev))
-	{
-		LOG_DBG("Failed send_soft_reset error");
-		return -EIO;
-	};
-
-	/* Wait for the sensor to be ready */
-	k_sleep(K_MSEC(1));
 
 	if(read_otp(dev))
 	{

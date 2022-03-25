@@ -16,7 +16,7 @@
 		compatible = "tdk,icp10125";
 		reg = <0x63>;
 		label = "ICP10125_I2C";
-		op-mode-t = "normal";
-		op-mode-p = "normal";
+		op-mode-t = "ultra-low-noise";
+		op-mode-p = "low-power";
 	};
 };
