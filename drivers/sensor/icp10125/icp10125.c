@@ -161,8 +161,9 @@ static int icp10125_sample_fetch(const struct device *dev,
 	__ASSERT_NO_MSG(chan == SENSOR_CHAN_ALL);
 
 	if(chan == SENSOR_CHAN_AMBIENT_TEMP || chan == SENSOR_CHAN_ALL){
-		data_write[0] = MEAS_ADDR_T_H[cfg->op_mode];
-		data_write[1] = MEAS_ADDR_T_L[cfg->op_mode];
+		data_write[0] = MEAS_ADDR_T_H[cfg->op_mode_t];
+		data_write[1] = MEAS_ADDR_T_L[cfg->op_mode_t];
+		printk("op_mode-t:%d\n",cfg->op_mode_t);
 		if (i2c_write(data->i2c, data_write, 2, ICP10125_I2C_ADDRESS)){
 			LOG_DBG("Failed to write address pointer");
 			return -EIO;
@@ -174,7 +175,7 @@ static int icp10125_sample_fetch(const struct device *dev,
 			}
 			if (i2c_read(data->i2c, data_read, 3, ICP10125_I2C_ADDRESS)){
 				count++;
-				k_sleep(K_USEC(CONVERSION_TIME_MAX[cfg->op_mode]));
+				k_sleep(K_USEC(CONVERSION_TIME_MAX[cfg->op_mode_t]));
 				continue;
 			}
 			break;
@@ -183,8 +184,9 @@ static int icp10125_sample_fetch(const struct device *dev,
 	}
 
 	if(chan == SENSOR_CHAN_PRESS || chan == SENSOR_CHAN_ALL){
-		data_write[0] = MEAS_ADDR_P_H[cfg->op_mode];
-		data_write[1] = MEAS_ADDR_P_L[cfg->op_mode];
+		data_write[0] = MEAS_ADDR_P_H[cfg->op_mode_p];
+		data_write[1] = MEAS_ADDR_P_L[cfg->op_mode_p];
+		printk("op_mode-t:%d\n",cfg->op_mode_p);
 		if (i2c_write(data->i2c, data_write, 2, ICP10125_I2C_ADDRESS)){
 			LOG_DBG("Failed to write address pointer");
 			return -EIO;
@@ -196,7 +198,7 @@ static int icp10125_sample_fetch(const struct device *dev,
 			}
 			if (i2c_read(data->i2c, data_read, 9, ICP10125_I2C_ADDRESS)){
 				count++;
-				k_sleep(K_USEC(CONVERSION_TIME_MAX[cfg->op_mode]));
+				k_sleep(K_USEC(CONVERSION_TIME_MAX[cfg->op_mode_p]));
 				continue;
 			}
 			break;
@@ -242,7 +244,6 @@ static int icp10125_init(const struct device *dev)
 	}
 
 	drv_dev->i2c_addr = cfg->i2c_addr;
-	//cfg->op_mode = 1;
 
 	//soft reset
 	if(send_soft_reset(dev))
@@ -272,7 +273,9 @@ static int icp10125_init(const struct device *dev)
 	static struct icp10125_data icp10125_drv_##inst;			\
 	static const struct icp10125_dev_config icp10125_config_##inst =	{ \
 		.i2c_master_name = DT_INST_BUS_LABEL(inst),	       \
-		.i2c_addr = DT_INST_REG_ADDR(inst)};		       \
+		.i2c_addr = DT_INST_REG_ADDR(inst),		       \
+		.op_mode_t = DT_ENUM_IDX(DT_DRV_INST(inst), op_mode_t),		\
+		.op_mode_p = DT_ENUM_IDX(DT_DRV_INST(inst), op_mode_p)};		\
 	DEVICE_DT_INST_DEFINE(inst,					\
 			 icp10125_init,				\
 			 NULL,				\

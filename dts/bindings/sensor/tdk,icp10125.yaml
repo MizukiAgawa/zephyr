@@ -8,11 +8,22 @@ compatible: "tdk,icp10125"
 include: i2c-device.yaml
 
 properties:
-    op-mode:
+    op-mode-t:
       type: string
-      required: false
+      required: true
       description: Operating mode of sensor
       enum:
         - "low-power"
         - "normal"
-        - "high-perf"
+        - "low-noise"
+        - "ultra-low-noise"
+
+    op-mode-p:
+      type: string
+      required: true
+      description: Operating mode of sensor
+      enum:
+        - "low-power"
+        - "normal"
+        - "low-noise"
+        - "ultra-low-noise"
