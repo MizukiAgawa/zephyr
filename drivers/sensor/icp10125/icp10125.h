@@ -41,65 +41,60 @@ struct icp10125_dev_config {
 	uint16_t i2c_addr;
 };
 
-#define CONVERSION_TIME_T 1600
-#define CONVERSION_TIME_P 1600
+#define MODE_LP_T
+#define MODE_LP_P
+
 #ifdef MODE_LP_T
-#define CONVERSION_TIME_T 1600
+#define CONVERSION_TIME_T 1800
+#define MEAS_ADDR_T_H 0x60
+#define MEAS_ADDR_T_L 0x9C
 #endif
 #ifdef MODE_N_T
-#define CONVERSION_TIME_T 5600
+#define CONVERSION_TIME_T 6300
+#define MEAS_ADDR_T_H 0x68
+#define MEAS_ADDR_T_L 0x25
 #endif
 #ifdef MODE_LN_T
-#define CONVERSION_TIME_T 20800
+#define CONVERSION_TIME_T 23800
+#define MEAS_ADDR_T_H 0x70
+#define MEAS_ADDR_T_L 0xDF
 #endif
 #ifdef MODE_ULN_T
-#define CONVERSION_TIME_T 83200
+#define CONVERSION_TIME_T 94500
+#define MEAS_ADDR_T_H 0x78
+#define MEAS_ADDR_T_L 0x66
 #endif
 
 #ifdef MODE_LP_P
-#define CONVERSION_TIME_P 1600
+#define CONVERSION_TIME_P 1800
+#define MEAS_ADDR_P_H 0x40
+#define MEAS_ADDR_P_L 0x1A
 #endif
 #ifdef MODE_N_P
-#define CONVERSION_TIME_P 5600
+#define CONVERSION_TIME_P 6300
+#define MEAS_ADDR_P_H 0x48
+#define MEAS_ADDR_P_L 0xA3
 #endif
 #ifdef MODE_LN_P
-#define CONVERSION_TIME_P 20800
+#define CONVERSION_TIME_P 23800
+#define MEAS_ADDR_P_H 0x50
+#define MEAS_ADDR_P_L 0x59
 #endif
 #ifdef MODE_ULN_P
-#define CONVERSION_TIME_P 83200
+#define CONVERSION_TIME_P 94500
+#define MEAS_ADDR_P_H 0x58
+#define MEAS_ADDR_P_L 0xE0
 #endif
 
+#define CALIBRATION_PARAME_SEND_01 0xC5
+#define CALIBRATION_PARAME_SEND_02 0x95
+#define CALIBRATION_PARAME_SEND_03 0x00
+#define CALIBRATION_PARAME_SEND_04 0x66
+#define CALIBRATION_PARAME_SEND_05 0x9C
+
+#define CALIBRATION_PARAME_READ_01 0xC7
+#define CALIBRATION_PARAME_READ_02 0xF7
 
 #define ICP10125_I2C_ADDRESS              DT_INST_REG_ADDR(0)
-#define ICP10125_REG_SEND                 0xC5
-
-#define ICP10125_REG_PRESS_MSB            0xF7
-#define ICP10125_REG_COMP_START           0x88
-#define ICP10125_REG_HUM_COMP_PART1       0xA1
-#define ICP10125_REG_HUM_COMP_PART2       0xE1
-#define ICP10125_REG_ID                   0xD0
-#define ICP10125_REG_CONFIG               0xF5
-#define ICP10125_REG_CTRL_MEAS            0xF4
-#define ICP10125_REG_CTRL_HUM             0xF2
-#define ICP10125_REG_STATUS               0xF3
-//#define ICP10125_REG_RESET                0xE0
-#define ICP10125_REG_WRITE_HEAD           0xC6
-#define ICP10125_REG_RESET                0x80
-#define ICP10125_REG_START_MEAS           0xC7
-#define ICP10125_REG_START_MEAS_READ      0xF7
-#define ICP10125_REG_START_MEAS_RETURN    0x9D
-
-#define BMP280_CHIP_ID_SAMPLE_1         0x56
-#define BMP280_CHIP_ID_SAMPLE_2         0x57
-#define BMP280_CHIP_ID_MP               0x58
-#define ICP10125_CHIP_ID                  0x60
-#define ICP10125_MODE_SLEEP               0x00
-#define ICP10125_MODE_FORCED              0x01
-#define ICP10125_MODE_NORMAL              0x03
-#define ICP10125_SPI_3W_DISABLE           0x00
-//#define ICP10125_CMD_SOFT_RESET           0xB6
-#define ICP10125_CMD_SOFT_RESET           0x5D
-#define ICP10125_STATUS_MEASURING         0x08
-#define ICP10125_STATUS_IM_UPDATE         0x01
 
 #endif /* ZEPHYR_DRIVERS_SENSOR_ICP10125_ICP10125_H_ */

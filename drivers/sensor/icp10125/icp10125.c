@@ -101,11 +101,11 @@ int read_otp(const struct device *dev)
 	uint8_t data_write[5];
 	uint8_t data_read[10] = {0};
 	
-	data_write[0] = ICP10125_REG_SEND;
-	data_write[1] = 0x95;
-	data_write[2] = 0x00;
-	data_write[3] = 0x66;
-	data_write[4] = 0x9C;
+	data_write[0] = CALIBRATION_PARAME_SEND_01;
+	data_write[1] = CALIBRATION_PARAME_SEND_02;
+	data_write[2] = CALIBRATION_PARAME_SEND_03;
+	data_write[3] = CALIBRATION_PARAME_SEND_04;
+	data_write[4] = CALIBRATION_PARAME_SEND_05;
 
 	if (i2c_write(data->i2c, data_write, 5, ICP10125_I2C_ADDRESS)){
 		LOG_DBG("Failed to write address pointer");
@@ -113,8 +113,8 @@ int read_otp(const struct device *dev)
 	}
 
 	for (int i = 0; i < 4; i++) {
-		data_write[0] = 0xC7;
-		data_write[1] = 0xF7;
+		data_write[0] = CALIBRATION_PARAME_READ_01;
+		data_write[1] = CALIBRATION_PARAME_READ_02;
 		if (i2c_write(data->i2c, data_write, 2, ICP10125_I2C_ADDRESS)){
 			LOG_DBG("Failed to write address pointer");
 			return -EIO;
@@ -140,8 +140,8 @@ static int icp10125_sample_fetch(const struct device *dev,
 	__ASSERT_NO_MSG(chan == SENSOR_CHAN_ALL);
 
 	if(chan == SENSOR_CHAN_AMBIENT_TEMP || chan == SENSOR_CHAN_ALL){
-		data_write[0] = 0x68;
-		data_write[1] = 0x25;
+		data_write[0] = MEAS_ADDR_T_H;
+		data_write[1] = MEAS_ADDR_T_L;
 		if (i2c_write(data->i2c, data_write, 2, ICP10125_I2C_ADDRESS)){
 			LOG_DBG("Failed to write address pointer");
 			return -EIO;
@@ -162,8 +162,8 @@ static int icp10125_sample_fetch(const struct device *dev,
 	}
 
 	if(chan == SENSOR_CHAN_PRESS || chan == SENSOR_CHAN_ALL){
-		data_write[0] = 0x48;
-		data_write[1] = 0xA3;
+		data_write[0] = MEAS_ADDR_P_H;
+		data_write[1] = MEAS_ADDR_P_L;
 		if (i2c_write(data->i2c, data_write, 2, ICP10125_I2C_ADDRESS)){
 			LOG_DBG("Failed to write address pointer");
 			return -EIO;
