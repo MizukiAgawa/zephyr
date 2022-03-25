@@ -14,25 +14,15 @@
 
 struct icp10125_data {
 	/* Compensated values. */
-	const struct device *i2c;
-	int16_t otp[4];
-	uint8_t i2c_addr;
-	uint8_t pressure_en;
-	uint8_t temperature_en;
-	float sensor_constants[4]; // OTP values
-	float p_Pa_calib[3];
-	float LUT_lower;
-	float LUT_upper;
-	float quadr_factor;
-	float offst_factor;
-	int32_t T_LSB;
-	int32_t p_LSB;
+	uint16_t raw_temp_data;
+	uint32_t raw_press_data;
 	uint8_t read_data[9];
+
+	float sensor_constants[4];
 };
 
 struct icp10125_dev_config {
-	const char *i2c_master_name;
-	uint16_t i2c_addr;
+	struct i2c_dt_spec i2c;
 	uint8_t op_mode_t;
 	uint8_t op_mode_p;
 };
