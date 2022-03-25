@@ -22,6 +22,70 @@
 
 LOG_MODULE_REGISTER(ICP10125, CONFIG_SENSOR_LOG_LEVEL);
 
+
+
+#define DT_DRV_COMPAT tdk_icp10125
+#define ICP10125_BUS_I2C DT_ANY_INST_ON_BUS_STATUS_OKAY(i2c)
+#define ICP10125_I2C_ADDRESS              DT_INST_REG_ADDR(0)
+
+
+#define MODE_LP_T
+#define MODE_LP_P
+
+#ifdef MODE_LP_T
+#define CONVERSION_TIME_T 1800
+#define MEAS_ADDR_T_H 0x60
+#define MEAS_ADDR_T_L 0x9C
+#endif
+#ifdef MODE_N_T
+#define CONVERSION_TIME_T 6300
+#define MEAS_ADDR_T_H 0x68
+#define MEAS_ADDR_T_L 0x25
+#endif
+#ifdef MODE_LN_T
+#define CONVERSION_TIME_T 23800
+#define MEAS_ADDR_T_H 0x70
+#define MEAS_ADDR_T_L 0xDF
+#endif
+#ifdef MODE_ULN_T
+#define CONVERSION_TIME_T 94500
+#define MEAS_ADDR_T_H 0x78
+#define MEAS_ADDR_T_L 0x66
+#endif
+
+#ifdef MODE_LP_P
+#define CONVERSION_TIME_P 1800
+#define MEAS_ADDR_P_H 0x40
+#define MEAS_ADDR_P_L 0x1A
+#endif
+#ifdef MODE_N_P
+#define CONVERSION_TIME_P 6300
+#define MEAS_ADDR_P_H 0x48
+#define MEAS_ADDR_P_L 0xA3
+#endif
+#ifdef MODE_LN_P
+#define CONVERSION_TIME_P 23800
+#define MEAS_ADDR_P_H 0x50
+#define MEAS_ADDR_P_L 0x59
+#endif
+#ifdef MODE_ULN_P
+#define CONVERSION_TIME_P 94500
+#define MEAS_ADDR_P_H 0x58
+#define MEAS_ADDR_P_L 0xE0
+#endif
+
+#define CALIBRATION_PARAME_SEND_01 0xC5
+#define CALIBRATION_PARAME_SEND_02 0x95
+#define CALIBRATION_PARAME_SEND_03 0x00
+#define CALIBRATION_PARAME_SEND_04 0x66
+#define CALIBRATION_PARAME_SEND_05 0x9C
+
+#define CALIBRATION_PARAME_READ_01 0xC7
+#define CALIBRATION_PARAME_READ_02 0xF7
+
+
+
+
 #if DT_NUM_INST_STATUS_OKAY(DT_DRV_COMPAT) == 0
 #warning "ICP10125 driver enabled without any devices"
 #endif
