@@ -1,22 +1,16 @@
 /*
- * Copyright (c) 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2022 Mizuki AGAWA <agawa.mizuki@fujitsu.com>
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/*
- * Example configuration of a ICP10125 device on an Arduino I2C bus.
- *
- * Device address 0x77 is assumed. Your device may have a different
- * address; check your device documentation if unsure.
- */
 &i2c0 {
 	status = "okay";
 	icp10125@63 {
 		compatible = "tdk,icp10125";
 		reg = <0x63>;
 		label = "ICP10125_I2C";
-		op-mode-t = "ultra-low-noise";
-		op-mode-p = "low-power";
+		op-mode-temperature = "normal";
+		op-mode-pressure = "normal";
 	};
 };

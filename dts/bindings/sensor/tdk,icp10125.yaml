@@ -8,7 +8,7 @@ compatible: "tdk,icp10125"
 include: i2c-device.yaml
 
 properties:
-    op-mode-t:
+    op-mode-temperature:
       type: string
       required: true
       description: Operating mode of sensor
@@ -18,7 +18,7 @@ properties:
         - "low-noise"
         - "ultra-low-noise"
 
-    op-mode-p:
+    op-mode-pressure:
       type: string
       required: true
       description: Operating mode of sensor
