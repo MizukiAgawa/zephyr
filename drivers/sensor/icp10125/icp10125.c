@@ -14,6 +14,10 @@
 #include <sys/__assert.h>
 #include <logging/log.h>
 
+#ifdef CONFIG_ICP10125_CRC_CHECK
+#include <sys/crc.h>
+#endif /* CONFIG_ICP10125_CRC_CHECK */
+
 #include "icp10125.h"
 
 LOG_MODULE_REGISTER(ICP10125, CONFIG_SENSOR_LOG_LEVEL);
@@ -25,6 +29,11 @@ static const uint8_t meas_addr_press[4][2] = { { 0x40, 0x1A }, { 0x48, 0xA3 }, {
 static const uint32_t conversion_time_max[4] = { 1800, 6300, 23800, 94500 };
 static const uint32_t conversion_time_typ[4] = { 1600, 5600, 20800, 83200 };
 
+/**
+ * @brief The ICP10125 product manual does not have a detailed explanation,
+ *        it was implemented in a format close to the sample code.
+ */
+
 static void icp10125_calculate_conversion_constants(float *p_LUT, float *A, float *B, float *C)
 {
 	const float p_Pa[] = { 45000.0, 80000.0, 105000.0 };
@@ -34,6 +43,10 @@ static void icp10125_calculate_conversion_constants(float *p_LUT, float *A, floa
 	*B = (p_Pa[0] - (*A)) * (p_LUT[0] + (*C));
 }
 
+/**
+ * @brief The ICP10125 product manual does not have a detailed explanation,
+ *        it was implemented in a format close to the sample code.
+ */
 static float icp10125_calc_caribrated_pressure(struct icp10125_data *data)
 {
 	const float quadr_factor = 1 / 16777216.0;
@@ -115,6 +128,13 @@ static int icp10125_sample_fetch(const struct device *dev,
 				return -EIO;
 			}
 		}
+#ifdef CONFIG_ICP10125_CRC_CHECK
+	/* Calculate CRC from Chapter 5 Section 8 of ICP10125 Product manuals. */
+	if (crc8(data->read_data, 3, 0x31, 0xFF, false) != data->read_data[2]) {
+		LOG_ERR("CRC verification failed.");
+		return -EIO;
+	}
+#endif /* CONFIG_ICP10125_CRC_CHECK */
 		data->raw_temp_data = data->read_data[0] << 8 | data->read_data[1];
 	}
 
@@ -130,6 +150,13 @@ static int icp10125_sample_fetch(const struct device *dev,
 				return -EIO;
 			}
 		}
+#ifdef CONFIG_ICP10125_CRC_CHECK
+		/* Calculate CRC from Chapter 5 Section 8 of ICP10125 Product manuals. */
+		if (crc8(data->read_data, 9, 0x31, 0xFF, false) != data->read_data[8]) {
+			LOG_ERR("CRC verification failed.");
+		return -EIO;
+		}
+#endif /* CONFIG_ICP10125_CRC_CHECK */
 		data->raw_press_data = data->read_data[0] << 16 | data->read_data[1] << 8 | data->read_data[3];
 		data->raw_temp_data = data->read_data[6] << 8 | data->read_data[7];
 	}
@@ -145,7 +172,6 @@ static int icp10125_channel_get(const struct device *dev,
 	if (!(chan == SENSOR_CHAN_AMBIENT_TEMP || chan == SENSOR_CHAN_PRESS || chan == SENSOR_CHAN_ALL)) {
 		return -ENOTSUP;
 	}
-
 	if (chan == SENSOR_CHAN_AMBIENT_TEMP || chan == SENSOR_CHAN_ALL) {
 		icp10125_convert_temperature_value(data, val);
 	}
@@ -168,10 +194,6 @@ static int icp10125_init(const struct device *dev)
 	return 0;
 }
 
-/*
- * Main instantiation macro, which selects the correct bus-specific
- * instantiation macros for the instance.
- */
 #define ICP10125_DEFINE(inst)							  \
 	static struct icp10125_data icp10125_drv_##inst;			  \
 	static const struct icp10125_dev_config icp10125_config_##inst =        { \
@@ -187,5 +209,4 @@ static int icp10125_init(const struct device *dev)
 			      CONFIG_SENSOR_INIT_PRIORITY,			  \
 			      &icp10125_api_funcs);
 
-/* Create the struct device for every status "okay" node in the devicetree. */
 DT_INST_FOREACH_STATUS_OKAY(ICP10125_DEFINE)
