@@ -33,7 +33,6 @@ static const uint32_t conversion_time_typ[4] = { 1600, 5600, 20800, 83200 };
  * @brief The ICP10125 product manual does not have a detailed explanation,
  *        it was implemented in a format close to the sample code.
  */
-
 static void icp10125_calculate_conversion_constants(float *p_LUT, float *A, float *B, float *C)
 {
 	const float p_Pa[] = { 45000.0, 80000.0, 105000.0 };
@@ -81,6 +80,10 @@ static void icp10125_convert_temperature_value(struct icp10125_data *data, struc
 	val->val2 = (int32_t)((temp - val->val1) * 1000000);
 }
 
+/**
+ * @brief The ICP10125 product manual does not have a detailed explanation,
+ *        it was implemented in a format close to the sample code.
+ */
 static int icp10125_read_otp(const struct device *dev)
 {
 	struct icp10125_data *data = dev->data;
