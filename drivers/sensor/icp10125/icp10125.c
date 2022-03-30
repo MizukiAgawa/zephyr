@@ -90,18 +90,18 @@ static int icp10125_read_otp(const struct device *dev)
 	uint8_t otp_data[3] = { 0 };
 
 	if (i2c_write_dt(&cfg->i2c, otp_read_setup_cmd, sizeof(otp_read_setup_cmd))) {
-		LOG_DBG("Failed to write otp_read_setup");
+		LOG_DBG("Failed to write otp_read_setup.");
 		return -EIO;
 	}
 
 	for (int i = 0; i < 4; i++) {
 		if (i2c_write_dt(&cfg->i2c, otp_read_request_cmd, sizeof(otp_read_request_cmd))) {
-			LOG_DBG("Failed to write otp_read_request");
+			LOG_DBG("Failed to write otp_read_request.");
 			return -EIO;
 		}
 
 		if (i2c_read_dt(&cfg->i2c, otp_data, sizeof(otp_data))) {
-			LOG_DBG("Failed to read otp_read_request");
+			LOG_DBG("Failed to read otp_read_request.");
 			return -EIO;
 		}
 		data->sensor_constants[i] = (float)(otp_data[0] << 8 | otp_data[1]);
@@ -117,7 +117,7 @@ static int icp10125_sample_fetch(const struct device *dev,
 
 	if (chan == SENSOR_CHAN_AMBIENT_TEMP || chan == SENSOR_CHAN_ALL) {
 		if (i2c_write_dt(&cfg->i2c, meas_addr_temp[cfg->op_mode_temperature], 2)) {
-			LOG_DBG("Failed to measure the temperature");
+			LOG_DBG("Failed to measure the temperature.");
 			return -EIO;
 		}
 
@@ -130,7 +130,7 @@ static int icp10125_sample_fetch(const struct device *dev,
 		}
 #ifdef CONFIG_ICP10125_CRC_CHECK
 	/* Calculate CRC from Chapter 5 Section 8 of ICP10125 Product manuals. */
-	if (crc8(data->read_data, 3, 0x31, 0xFF, false) != data->read_data[2]) {
+	if (crc8(data->read_data, 2, 0x31, 0xFF, false) != data->read_data[2]) {
 		LOG_ERR("CRC verification failed.");
 		return -EIO;
 	}
@@ -140,7 +140,7 @@ static int icp10125_sample_fetch(const struct device *dev,
 
 	if (chan == SENSOR_CHAN_PRESS || chan == SENSOR_CHAN_ALL) {
 		if (i2c_write_dt(&cfg->i2c, meas_addr_press[cfg->op_mode_pressure], 2)) {
-			LOG_DBG("Failed to measure the pressure");
+			LOG_DBG("Failed to measure the pressure.");
 			return -EIO;
 		}
 		k_sleep(K_USEC(conversion_time_typ[cfg->op_mode_pressure]));
@@ -152,10 +152,13 @@ static int icp10125_sample_fetch(const struct device *dev,
 		}
 #ifdef CONFIG_ICP10125_CRC_CHECK
 		/* Calculate CRC from Chapter 5 Section 8 of ICP10125 Product manuals. */
-		if (crc8(data->read_data, 9, 0x31, 0xFF, false) != data->read_data[8]) {
-			LOG_ERR("CRC verification failed.");
-		return -EIO;
+		for(int i = 0; i < 3; i++){
+			if (crc8(&data->read_data[i * 3], 2, 0x31, 0xFF, false) != data->read_data[3 * i + 2]) {
+				LOG_ERR("CRC verification failed.");
+				return -EIO;
+			}
 		}
+
 #endif /* CONFIG_ICP10125_CRC_CHECK */
 		data->raw_press_data = data->read_data[0] << 16 | data->read_data[1] << 8 | data->read_data[3];
 		data->raw_temp_data = data->read_data[6] << 8 | data->read_data[7];
