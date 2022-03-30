@@ -42,11 +42,9 @@ void main(void)
 
 		sensor_sample_fetch_chan(dev, SENSOR_CHAN_AMBIENT_TEMP);
 		sensor_channel_get(dev, SENSOR_CHAN_AMBIENT_TEMP, &temp);
-//		printk("temp.val1:%d temp.val2:%06d;\n", temp.val1, temp.val2);
 		sensor_sample_fetch_chan(dev, SENSOR_CHAN_PRESS);
 		sensor_channel_get(dev, SENSOR_CHAN_PRESS, &press);
-//		printk("press.val1: %d press.val2: %06d;\n",press.val1, press.val2);
 		printk("temp: %d.%06d; press %d.%06d;\n",temp.val1, temp.val2, press.val1, press.val2);
-		k_sleep(K_MSEC(3000));
+		k_sleep(K_MSEC(1000));
 	}
 }
