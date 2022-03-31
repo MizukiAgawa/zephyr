@@ -118,6 +118,14 @@ static int icp10125_read_otp(const struct device *dev)
 	return 0;
 }
 
+/**
+ * @brief Verify CRC.
+ *        Details of CRC are described in Chapter 5 Section 8 of the product specifications.
+ */
+static int icp10125_crc_check(uint8_t *data){
+	return crc8(data, 2, 0x31, 0xFF, false);
+}
+
 static int icp10125_sample_fetch(const struct device *dev,
 				 enum sensor_channel chan)
 {
@@ -138,11 +146,10 @@ static int icp10125_sample_fetch(const struct device *dev,
 			}
 		}
 #ifdef CONFIG_ICP10125_CRC_CHECK
-	/* Calculate CRC from Chapter 5 Section 8 of ICP10125 Product manuals. */
-	if (crc8(data->read_data, 2, 0x31, 0xFF, false) != data->read_data[2]) {
-		LOG_ERR("CRC verification failed.");
-		return -EIO;
-	}
+		if (!icp10125_crc_check(data->read_data)){
+			LOG_ERR("Temperature data has invalid CRC.");
+			return -EIO;
+		}
 #endif /* CONFIG_ICP10125_CRC_CHECK */
 		data->raw_temp_data = data->read_data[0] << 8 | data->read_data[1];
 	}
@@ -162,12 +169,11 @@ static int icp10125_sample_fetch(const struct device *dev,
 #ifdef CONFIG_ICP10125_CRC_CHECK
 		/* Calculate CRC from Chapter 5 Section 8 of ICP10125 Product manuals. */
 		for(int i = 0; i < 3; i++){
-			if (crc8(&data->read_data[i * 3], 2, 0x31, 0xFF, false) != data->read_data[3 * i + 2]) {
-				LOG_ERR("CRC verification failed.");
+			if (!icp10125_crc_check(&(data->read_data[i * 3]))){
+				LOG_ERR("Pressure data has invalid CRC.");
 				return -EIO;
 			}
 		}
-
 #endif /* CONFIG_ICP10125_CRC_CHECK */
 		data->raw_press_data = data->read_data[0] << 16 | data->read_data[1] << 8 | data->read_data[3];
 		data->raw_temp_data = data->read_data[6] << 8 | data->read_data[7];
