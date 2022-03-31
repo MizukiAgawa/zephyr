@@ -30,8 +30,8 @@ static const uint32_t conversion_time_max[4] = { 1800, 6300, 23800, 94500 };
 static const uint32_t conversion_time_typ[4] = { 1600, 5600, 20800, 83200 };
 
 /**
- * @brief The ICP10125 product manual does not have a detailed explanation,
- *        it was implemented in a format close to the sample code.
+ * @brief Since there is no detailed description in the ICP 10125 product manual,
+ *        the pressure equation was implemented in the same format as the sample code.
  */
 static void icp10125_calculate_conversion_constants(float *p_LUT, float *A, float *B, float *C)
 {
@@ -43,8 +43,8 @@ static void icp10125_calculate_conversion_constants(float *p_LUT, float *A, floa
 }
 
 /**
- * @brief The ICP10125 product manual does not have a detailed explanation,
- *        it was implemented in a format close to the sample code.
+ * @brief Since there is no detailed description in the ICP 10125 product manual,
+ *        the pressure equation was implemented in the same format as the sample code.
  */
 static float icp10125_calc_caribrated_pressure(struct icp10125_data *data)
 {
@@ -71,8 +71,8 @@ static void icp10125_convert_pressure_value(struct icp10125_data *data, struct s
 {
 	float pressure = icp10125_calc_caribrated_pressure(data);
 
-	val->val1 = (int32_t)(pressure / 100000);
-	val->val2 = (int32_t)((pressure - (val->val1 * 100000)) * 10);
+	val->val1 = (int32_t)(pressure / 1000);
+	val->val2 = (int32_t)((pressure - (val->val1 * 1000)) * 1000000);
 }
 
 static void icp10125_convert_temperature_value(struct icp10125_data *data, struct sensor_value *val)
@@ -84,8 +84,11 @@ static void icp10125_convert_temperature_value(struct icp10125_data *data, struc
 }
 
 /**
- * @brief The ICP10125 product manual does not have a detailed explanation,
- *        it was implemented in a format close to the sample code.
+ * @brief The ICP 10125 product manual does not include read_otp,
+ * but it must be obtained prior to barometric measurements.
+ * Because the semantics cannot be read from the documentation,
+ * read_otp was implemented in a format similar to the sample code.
+ * it was implemented in a format close to the sample code.
  */
 static int icp10125_read_otp(const struct device *dev)
 {
