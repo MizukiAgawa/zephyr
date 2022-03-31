@@ -64,12 +64,15 @@ static float icp10125_calc_caribrated_pressure(struct icp10125_data *data)
 	return A + B / (C + data->raw_press_data);
 }
 
+/**
+ * @brief Convert Pascal notation to Kilopascal notation.
+ */
 static void icp10125_convert_pressure_value(struct icp10125_data *data, struct sensor_value *val)
 {
 	float pressure = icp10125_calc_caribrated_pressure(data);
 
-	val->val1 = (int32_t)(pressure);
-	val->val2 = (int32_t)((pressure - val->val1) * 1000000);
+	val->val1 = (int32_t)(pressure / 100000);
+	val->val2 = (int32_t)((pressure - (val->val1 * 100000)) * 10);
 }
 
 static void icp10125_convert_temperature_value(struct icp10125_data *data, struct sensor_value *val)
