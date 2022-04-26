@@ -1,0 +1,16 @@
+/*
+ * Copyright (c) 2022 Mizuki AGAWA <agawa.mizuki@fujitsu.com>
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+&i2c1 {
+	status = "okay";
+	icp10125@63 {
+		compatible = "tdk,icp10125";
+		reg = <0x63>;
+		label = "ICP10125_I2C";
+		op-mode-temperature = "normal";
+		op-mode-pressure = "normal";
+	};
+};
