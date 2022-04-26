@@ -1,0 +1,19 @@
+# ICP10125 temperature and pressure sensor configuration options
+
+# Copyright (c) 2022 Mizuki AGAWA <agawa.mizuki@fujitsu.com>
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig ICP10125
+	bool "ICP10125 sensor"
+	help
+	  Enable driver for ICP10125 temperature and pressure sensor.
+
+if ICP10125
+
+config ICP10125_CRC_CHECK
+	bool "Use CRC Check"
+	default y
+	help
+	  Check the crc of measument data.
+
+endif # ICP10125

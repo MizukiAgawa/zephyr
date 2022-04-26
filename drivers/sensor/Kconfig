@@ -250,4 +250,6 @@ source "drivers/sensor/ite_tach_it8xxx2/Kconfig"
 
 source "drivers/sensor/ite_vcmp_it8xxx2/Kconfig"
 
+source "drivers/sensor/icp10125/Kconfig"
+
 endif # SENSOR

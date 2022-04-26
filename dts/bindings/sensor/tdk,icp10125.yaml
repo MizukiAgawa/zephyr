@@ -1,0 +1,29 @@
+# Copyright (c) 2019, Linaro Limited
+# SPDX-License-Identifier: Apache-2.0
+
+description: ICP10125 temperature/pressure sensor
+
+compatible: "tdk,icp10125"
+
+include: i2c-device.yaml
+
+properties:
+    op-mode-temperature:
+      type: string
+      required: true
+      description: Operating mode of sensor
+      enum:
+        - "low-power"
+        - "normal"
+        - "low-noise"
+        - "ultra-low-noise"
+
+    op-mode-pressure:
+      type: string
+      required: true
+      description: Operating mode of sensor
+      enum:
+        - "low-power"
+        - "normal"
+        - "low-noise"
+        - "ultra-low-noise"
